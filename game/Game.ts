@@ -21,8 +21,8 @@ class Player {
     this.id = id;
     this.color = color;
     this.wins = 1;
-    this.timeLeftMs = 1;
-    this.lastMoveTimestamp = 1;
+    this.timeLeftMs = 10 * 60 * 1000;
+    this.lastMoveTimestamp = 0;
   }
 }
 
@@ -81,11 +81,12 @@ export class Game {
 
   move(playerId: bigint, move: MoveObject): Result<void, string> {
     return this.getPlayer(playerId)
-      .andThen((player) => this.validatePlayerTurn(player))
-      .andThen((player) => this.validatePromotion(move, player))
-      .andThen((player) => this.validateTimeControl(player))
-      .andThen((player) => this.safeMove(player, move))
-      .andThen((player) => this.checkGameOver(player));
+      .andThen(player => this.validatePlayerTurn(player))
+      .andThen(player => this.validatePromotion(move, player))
+      .andThen(player => this.validateTimeControl(player))
+      .andThen(player => this.safeMove(player, move))
+      .andThen(player => this.updateTime(player))
+      .andThen(player => this.checkGameOver(player));
   }
 
   private validatePlayerTurn(player: Player): Result<Player, string> {
@@ -101,21 +102,16 @@ export class Game {
   }
 
   private validateTimeControl(player: Player): Result<Player, string> {
-    const currentTime = Date.now();
-    if (this.chess.history().length > 1 && player.timeLeftMs) {
-      if (!this.gameStartTime) {
-        this.gameStartTime = currentTime;
-        this.lastTurnStartTime = currentTime;
-      } else {
-        if (!this.lastTurnStartTime) {
-          return err("Last turn start time missing");
-        }
-        const timeSpent = currentTime - this.lastTurnStartTime;
-        player.timeLeftMs = Math.max(1, player.timeLeftMs - timeSpent);
-        if (player.timeLeftMs <= 1) {
-          return err("Time ran out");
-        }
+    if (this.isTimed && player.timeLeftMs <= 0) {
+      this.isGameOver = true;
+      const enemyResult = this.getEnemy(player.id);
+      if (enemyResult.isErr()) {
+        return err(enemyResult.error);
       }
+      const enemy = enemyResult.value;
+      this.winner = enemy.id;
+      this.gameOverReason = "time ran out"
+      return err("time ran out");
     }
     return ok(player);
   }
@@ -125,9 +121,20 @@ export class Game {
       () => this.chess.move(move),
       () => "Invalid move"
     )();
-    player.lastMoveTimestamp = Date.now();
-    this.lastTurnStartTime = Date.now();
     return moveResult.map(() => player)
+  }
+
+  private updateTime(player: Player) {
+    const currentTime = Date.now();
+    player.lastMoveTimestamp = currentTime;
+    if (this.chess.history().length === 0) {
+      this.gameStartTime = currentTime;
+    } else {
+      const timeSpent = currentTime - this.lastTurnStartTime;
+      player.timeLeftMs = Math.max(1, player.timeLeftMs - timeSpent);
+    }
+    this.lastTurnStartTime = currentTime;
+    return ok(player);
   }
 
   private checkGameOver(player: Player) {
