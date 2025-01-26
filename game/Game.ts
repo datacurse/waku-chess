@@ -1,165 +1,163 @@
-import { Chess, Color } from "chess.js";
-import { Result, ok, err } from "neverthrow";
+import { Chess, Color, Move } from "chess.js";
 
-type MoveObject = {
-  from: string;
-  to: string;
-  promotion?: string;
-};
-
-type ChatType = "sender" | "private" | "channel" | "group" | "supergroup";
-
-class Player {
-  id: bigint;
-  name?: string;
-  color: Color;
+export class Player {
+  readonly color: Color;
   wins: number;
-  timeLeftMs: number;
-  lastMoveTimestamp: number;
+  timeLeft: number;
+  offers: {
+    draw: boolean;
+    takeback: boolean;
+  };
 
-  constructor(id: bigint, color: Color) {
-    this.id = id;
+  constructor(color: Color, initialTime: number) {
     this.color = color;
-    this.wins = 1;
-    this.timeLeftMs = 10 * 60 * 1000;
-    this.lastMoveTimestamp = 0;
+    this.wins = 0;
+    this.timeLeft = initialTime;
+    this.offers = {
+      draw: false,
+      takeback: false
+    };
   }
 }
 
 export class Game {
-  roomId: string;
-  chatId: bigint;
-  chatType: ChatType;
-  onlineUsers: bigint[];
-  players: Player[];
   chess: Chess;
   isTimed: boolean;
   gameStartTime: number;
   lastTurnStartTime: number;
+  players: Record<Color, Player>;
   isGameOver: boolean;
-  winner: null | bigint;
-  gameOverReason: null | string;
+  winner: null | Color;
 
-  constructor(roomId: string, chatId: bigint, chatType: ChatType) {
-    this.roomId = roomId;
-    this.chatId = chatId;
-    this.chatType = chatType;
-    this.onlineUsers = [];
-    this.players = [];
+  constructor() {
     this.chess = new Chess();
     this.isTimed = false;
-    this.gameStartTime = 1;
-    this.lastTurnStartTime = 1;
-    this.isGameOver = false
-    this.winner = null
-    this.gameOverReason = null
-  }
-
-  private getPlayer(playerId: bigint): Result<Player, string> {
-    const player = this.players.find((p) => p.id === playerId);
-    return player ? ok(player) : err("Player not found");
-  }
-
-  private getEnemy(playerId: bigint): Result<Player, string> {
-    const enemy = this.players.find(p => p.id !== playerId);
-    return enemy ? ok(enemy) : err("Enemy not found");
-  }
-
-  give15seconds(playerId: bigint): Result<void, string> {
-    return this.validateTimedGame()
-      .andThen(() => this.getEnemy(playerId))
-      .map(enemy => {
-        enemy.timeLeftMs += 15 * 1000
-      })
-  }
-
-  private validateTimedGame(): Result<void, string> {
-    return this.isTimed
-      ? ok(undefined)
-      : err("This game doesn't use time controls");
-  }
-
-  move(playerId: bigint, move: MoveObject): Result<void, string> {
-    return this.getPlayer(playerId)
-      .andThen(player => this.validatePlayerTurn(player))
-      .andThen(player => this.validatePromotion(move, player))
-      .andThen(player => this.validateTimeControl(player))
-      .andThen(player => this.safeMove(player, move))
-      .andThen(player => this.updateTime(player))
-      .andThen(player => this.checkGameOver(player));
-  }
-
-  private validatePlayerTurn(player: Player): Result<Player, string> {
-    return player.color === this.chess.turn()
-      ? ok(player)
-      : err("Not your turn");
-  }
-
-  private validatePromotion(move: MoveObject, player: Player): Result<Player, string> {
-    return !move.promotion || ["q", "r", "b", "n"].includes(move.promotion)
-      ? ok(player)
-      : err("Invalid promotion");
-  }
-
-  private validateTimeControl(player: Player): Result<Player, string> {
-    if (this.isTimed && player.timeLeftMs <= 0) {
-      this.isGameOver = true;
-      const enemyResult = this.getEnemy(player.id);
-      if (enemyResult.isErr()) {
-        return err(enemyResult.error);
-      }
-      const enemy = enemyResult.value;
-      this.winner = enemy.id;
-      this.gameOverReason = "time ran out"
-      return err("time ran out");
+    this.lastTurnStartTime = 0;
+    this.isGameOver = false;
+    this.winner = null;
+    const initialTime = 10 * 60 * 1000
+    this.gameStartTime = initialTime;
+    this.players = {
+      'w': new Player('w', initialTime),
+      'b': new Player('b', initialTime)
     }
-    return ok(player);
   }
 
-  private safeMove(player: Player, move: MoveObject) {
-    const moveResult = Result.fromThrowable(
-      () => this.chess.move(move),
-      () => "Invalid move"
-    )();
-    return moveResult.map(() => player)
+  getPlayer(color: Color): Player {
+    return this.players[color];
   }
 
-  private updateTime(player: Player) {
+  getEnemy(color: Color): Player {
+    return this.players[color === 'w' ? 'b' : 'w'];
+  }
+
+  move(color: Color, move: Move): boolean {
+    let r = this.validateTurn(color);
+    r = r && this.validatePromotion(move);
+    r = r && this.validateTimeControl();
+    if (!r) return false
+    try { this.chess.move(move) } catch (e) { return false }
+    this.checkGameOver()
+    this.updateTime(color)
+    return true
+  }
+
+  private validateTurn(color: Color): boolean {
+    return color === this.chess.turn()
+  }
+
+  private validatePromotion(move: Move): boolean {
+    return !move.promotion || ["q", "r", "b", "n"].includes(move.promotion)
+  }
+
+  private validateTimeControl(): boolean {
+    if (!this.isTimed) { return true }
+    Object.values(this.players).forEach(player => {
+      if (player.timeLeft <= 0) {
+        this.isGameOver = true;
+        this.winner = this.getEnemy(player.color).color;
+        return false
+      }
+    });
+    return true
+  }
+
+  private checkGameOver() {
+    if (this.chess.isGameOver()) {
+      this.isGameOver = true;
+      if (this.chess.isCheckmate()) {
+        this.winner = this.getEnemy(this.chess.turn()).color;
+      }
+    }
+  }
+
+  private updateTime(color: Color) {
+    const player = this.getPlayer(color)
     const currentTime = Date.now();
-    player.lastMoveTimestamp = currentTime;
     if (this.chess.history().length === 0) {
       this.gameStartTime = currentTime;
     } else {
-      const timeSpent = currentTime - this.lastTurnStartTime;
-      player.timeLeftMs = Math.max(1, player.timeLeftMs - timeSpent);
+      player.timeLeft = Math.max(1, player.timeLeft - (currentTime - this.lastTurnStartTime));
     }
     this.lastTurnStartTime = currentTime;
-    return ok(player);
   }
 
-  private checkGameOver(player: Player) {
-    if (this.chess.isCheckmate()) {
-      player.wins++;
-      this.isGameOver = true;
-      this.winner = player.id;
-      this.gameOverReason = "checkmate"
-    } else if (this.chess.isDraw()) {
-      this.isGameOver = true;
-      this.gameOverReason = "draw"
-    } else if (this.chess.isDrawByFiftyMoves()) {
-      this.isGameOver = true;
-      this.gameOverReason = "draw by fifty moves"
-    } else if (this.chess.isInsufficientMaterial()) {
-      this.isGameOver = true;
-      this.gameOverReason = "insufficient material"
-    } else if (this.chess.isStalemate()) {
-      this.isGameOver = true;
-      this.gameOverReason = "stalemate"
-    } else if (this.chess.isThreefoldRepetition()) {
-      this.isGameOver = true;
-      this.gameOverReason = "threefold repetition"
+  give15seconds(color: Color): boolean {
+    if (!this.isTimed) { return false }
+    const enemy = this.getEnemy(color)
+    enemy.timeLeft += 15 * 1000
+    return true
+  }
+
+  resign(color: Color) {
+    this.isGameOver = true
+    this.winner = this.getEnemy(color).color
+  }
+
+  timeout() {
+    this.validateTimeControl()
+  }
+
+  offerDraw(color: Color) {
+    this.getPlayer(color).offers.draw = true;
+  }
+
+  acceptDraw() {
+    this.clearOffers()
+    this.isGameOver = true
+  }
+
+  declineDraw(color: Color) {
+    this.getEnemy(color).offers.draw = false
+  }
+
+  offerTakeback(color: Color) {
+    this.getPlayer(color).offers.takeback = true;
+  }
+
+  acceptTakeback(): boolean {
+    this.clearOffers();
+    const history = this.chess.history({ verbose: true });
+    const newChess = new Chess();
+    if (history.length === 0) return false;
+    for (let i = 0; i <= history.length - 1 - 1; i++) {
+      const move = history[i];
+      if (!move) return false;
+      try { newChess.move(move) } catch (e) { return false }
     }
-    return ok(undefined);
+    this.chess = newChess;
+    return true
+  }
+
+  declineTakeback(color: Color) {
+    this.getEnemy(color).offers.takeback = false
+  }
+
+  clearOffers() {
+    Object.values(this.players).forEach(player => {
+      player.offers.draw = false;
+      player.offers.takeback = false;
+    });
   }
 }
 
