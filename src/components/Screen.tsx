@@ -2,31 +2,35 @@
 
 import { store } from "@/store";
 import { socket } from "../socket";
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 
-// Directly lazy-load P5Board component
 const P5Board = lazy(() => import('./P5Board'));
 
 export function Screen() {
-  const roomId = "1";
-  const userId = BigInt(1);
-
   useEffect(() => {
-    if (!roomId || !userId) return;
-    store.roomId = roomId
-    store.userId = userId
+    // Get search parameters from URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const roomId = searchParams.get('roomId') || '1';
+    const userIdParam = searchParams.get('userId');
+
+    // Parse userId as BigInt or default to 1n
+    const userId = userIdParam ? BigInt(userIdParam) : BigInt(1);
+
+    store.roomId = roomId;
+    store.userId = userId;
 
     socket.emit("join game", roomId, userId);
+
     const snapshotHandler = (gameSnapshot: any) => {
       console.log(gameSnapshot.roomId, gameSnapshot.chatId);
-      store.gameSnapshot = gameSnapshot
+      store.gameSnapshot = gameSnapshot;
     };
 
     socket.on("gameSnapshot", snapshotHandler);
     return () => {
       socket.off("gameSnapshot", snapshotHandler);
     };
-  }, [roomId, userId]);
+  }, []);
 
   return (
     <>
