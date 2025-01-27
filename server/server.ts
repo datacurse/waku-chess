@@ -1,30 +1,31 @@
 import 'reflect-metadata';
 import { Server as SocketIOServer } from "socket.io";
+import { ChatType, Room, RoomSnapshot } from '../game/Room';
 
-// All events and their payloads defined in one place
+// Events with explicit parameters
 interface ClientToServerEvents {
-  "join game": (payload: { gameId: string; userId: string }) => void;
-  "leave game": (payload: { gameId: string; userId: string }) => void;
-  "start new game": (payload: { gameSettings: object }) => void;
-  "make move": (payload: { move: string; userId: string }) => void;
-  "time is out": (payload: { gameId: string }) => void;
-  "give 15 seconds": (payload: { gameId: string; userId: string }) => void;
-  "propose a takeback": (payload: { gameId: string; userId: string }) => void;
-  "accept a takeback": (payload: { gameId: string; userId: string }) => void;
-  "decline a takeback": (payload: { gameId: string; userId: string }) => void;
-  "offer draw": (payload: { gameId: string }) => void;
-  "accept draw": (payload: { gameId: string }) => void;
-  "decline draw": (payload: { gameId: string }) => void;
-  "resign": (payload: { gameId: string; userId: string }) => void;
+  "join game": (roomId: string, userId: bigint) => void;
+  "leave game": (gameId: string, userId: string) => void;
+  "start new game": (gameSettings: object) => void;
+  "make move": (move: string, userId: string) => void;
+  "time is out": (gameId: string) => void;
+  "give 15 seconds": (gameId: string, userId: string) => void;
+  "propose a takeback": (gameId: string, userId: string) => void;
+  "accept a takeback": (gameId: string, userId: string) => void;
+  "decline a takeback": (gameId: string, userId: string) => void;
+  "offer draw": (gameId: string) => void;
+  "accept draw": (gameId: string) => void;
+  "decline draw": (gameId: string) => void;
+  "resign": (gameId: string, userId: string) => void;
 }
 
 interface ServerToClientEvents {
-  ping: () => void;
+  roomSnapshot: (roomSnapshot: RoomSnapshot) => void;
 }
 
-interface SocketData {
-  name: string;
-  age: number;
+export interface SocketData {
+  roomId: string;
+  tgUserId: bigint;
 }
 
 const io = new SocketIOServer<
@@ -35,59 +36,94 @@ const io = new SocketIOServer<
   },
 });
 
+class RoomsManager {
+  rooms: Record<string, Room>
+
+  constructor() {
+    this.rooms = {}
+  }
+
+  getRoom(id: string, chatId: bigint, chatType: ChatType): Room {
+    const aliveRoom = this.getAliveRoom(id);
+    if (aliveRoom) return aliveRoom
+    const newAliveRoom = new Room(id, chatId, chatType)
+    this.addAliveRoom(id, newAliveRoom)
+    return newAliveRoom
+  }
+
+  getAliveRoom(id: string): Room | undefined {
+    return this.rooms[id]
+  }
+
+  addAliveRoom(id: string, room: Room) {
+    this.rooms[id] = room;
+  }
+
+  killRoom(id: string) {
+    delete this.rooms[id];
+  }
+}
+
+const roomsManager = new RoomsManager();
+
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  socket.on("join game", (payload) => {
-    console.log("Join game:", payload);
+  socket.on("join game", (roomId, userId) => {
+    socket.join(roomId);
+    const room = roomsManager.getRoom(roomId, userId, "private");
+    if (!room) return
+    room.joinUser(userId)
+    socket.join(roomId);
+    io.in(roomId).emit("roomSnapshot", room.getSnapshot())
   });
 
-  socket.on("leave game", (payload) => {
-    console.log("Leave game:", payload);
+  socket.on("leave game", (gameId, userId) => {
+    console.log("Leave game:", gameId, userId);
   });
 
-  socket.on("start new game", (payload) => {
-    console.log("Start new game:", payload);
+  socket.on("start new game", (gameSettings) => {
+    console.log("Start new game:", gameSettings);
   });
 
-  socket.on("make move", (payload) => {
-    console.log("Make move:", payload);
+  socket.on("make move", (move, userId) => {
+    console.log("Make move:", move, userId);
   });
 
-  socket.on("time is out", (payload) => {
-    console.log("Time is out:", payload);
+  socket.on("time is out", (gameId) => {
+    console.log("Time is out:", gameId);
   });
 
-  socket.on("give 15 seconds", (payload) => {
-    console.log("Give 15 seconds:", payload);
+  socket.on("give 15 seconds", (gameId, userId) => {
+    console.log("Give 15 seconds:", gameId, userId);
   });
 
-  socket.on("propose a takeback", (payload) => {
-    console.log("Propose takeback:", payload);
+  socket.on("propose a takeback", (gameId, userId) => {
+    console.log("Propose takeback:", gameId, userId);
   });
 
-  socket.on("accept a takeback", (payload) => {
-    console.log("Accept takeback:", payload);
+  socket.on("accept a takeback", (gameId, userId) => {
+    console.log("Accept takeback:", gameId, userId);
   });
 
-  socket.on("decline a takeback", (payload) => {
-    console.log("Decline takeback:", payload);
+  socket.on("decline a takeback", (gameId, userId) => {
+    console.log("Decline takeback:", gameId, userId);
   });
 
-  socket.on("offer draw", (payload) => {
-    console.log("Offer draw:", payload);
+  socket.on("offer draw", (gameId) => {
+    console.log("Offer draw:", gameId);
   });
 
-  socket.on("accept draw", (payload) => {
-    console.log("Accept draw:", payload);
+  socket.on("accept draw", (gameId) => {
+    console.log("Accept draw:", gameId);
   });
 
-  socket.on("decline draw", (payload) => {
-    console.log("Decline draw:", payload);
+  socket.on("decline draw", (gameId) => {
+    console.log("Decline draw:", gameId);
   });
 
-  socket.on("resign", (payload) => {
-    console.log("Resign:", payload);
+  socket.on("resign", (gameId, userId) => {
+    console.log("Resign:", gameId, userId);
   });
 
   socket.on("disconnect", () => {

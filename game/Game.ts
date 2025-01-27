@@ -1,8 +1,31 @@
 import { Chess, Color, Move } from "chess.js";
 
+
+export interface GameSnapshot {
+  readonly fen: string;
+  readonly isTimed: boolean;
+  readonly gameStartTime: number;
+  readonly lastTurnStartTime: number;
+  readonly players: {
+    readonly w: Readonly<GamePlayerSnapshot>;
+    readonly b: Readonly<GamePlayerSnapshot>;
+  };
+  readonly isGameOver: boolean;
+  readonly winner: Color | null;
+  readonly moves: readonly string[] | Move[];
+}
+
+interface GamePlayerSnapshot {
+  readonly color: Color;
+  readonly timeLeft: number;
+  readonly offers: Readonly<{
+    draw: boolean;
+    takeback: boolean;
+  }>;
+}
+
 export class Player {
   readonly color: Color;
-  wins: number;
   timeLeft: number;
   offers: {
     draw: boolean;
@@ -11,7 +34,6 @@ export class Player {
 
   constructor(color: Color, initialTime: number) {
     this.color = color;
-    this.wins = 0;
     this.timeLeft = initialTime;
     this.offers = {
       draw: false,
@@ -157,6 +179,32 @@ export class Game {
     Object.values(this.players).forEach(player => {
       player.offers.draw = false;
       player.offers.takeback = false;
+    });
+  }
+
+  getSnapshot(): Readonly<GameSnapshot> {
+    const snapshot: GameSnapshot = {
+      fen: this.chess.fen(),
+      isTimed: this.isTimed,
+      gameStartTime: this.gameStartTime,
+      lastTurnStartTime: this.lastTurnStartTime,
+      players: {
+        w: this.getPlayerSnapshot('w'),
+        b: this.getPlayerSnapshot('b')
+      },
+      isGameOver: this.isGameOver,
+      winner: this.winner,
+      moves: this.chess.history({ verbose: true })
+    };
+    return Object.freeze(snapshot);
+  }
+
+  private getPlayerSnapshot(color: Color): Readonly<GamePlayerSnapshot> {
+    const player = this.players[color];
+    return Object.freeze({
+      color: player.color,
+      timeLeft: player.timeLeft,
+      offers: Object.freeze({ ...player.offers })
     });
   }
 }
