@@ -1,0 +1,97 @@
+import { store } from "@/store";
+import { Chess, Move, Square } from "chess.js";
+import { socket } from "@/socket"
+
+
+export function selectSquare(square: string) {
+  const userId = store.userId
+  if (userId === null) { return }
+  if (store.chess.isGameOver()) { return }
+  if (store.inspectedMoveIndex !== store.history.length - 1) { return }
+  if (store.pendingPromotion) { return }
+  const newSquare = square as Square;
+  if (store.selectedSquare === newSquare) {
+    store.selectedSquare = undefined;
+    return;
+  }
+  if (!store.selectedSquare) {
+    const piece = store.chess.get(newSquare);
+    if (piece) {
+      store.selectedSquare = newSquare;
+    }
+    return;
+  }
+  const fromSquare = store.selectedSquare;
+  if (!fromSquare) return
+  console.log("move")
+  const toSquare = newSquare;
+  try {
+    const move = performMove({
+      from: fromSquare,
+      to: toSquare
+    });
+    console.log("move result", move)
+    if (!move) {
+      store.selectedSquare = undefined;
+      return;
+    }
+    store.selectedSquare = undefined;
+    console.log("sending move", fromSquare, toSquare);
+    socket.emit("make move", userId, move);
+  } catch (err) {
+    store.selectedSquare = undefined;
+  }
+}
+
+const performMove = (moveDetails: { from: Square, to: Square, promotion?: string }) => {
+  const move = store.chess.move(moveDetails);
+  if (!move) return null;
+  store.history = [...store.history, move];
+  store.chess.move(moveDetails);
+  store.inspectedMoveIndex = store.history.length - 1;
+  //updateGameState();
+  return move;
+};
+
+//export const loadSelectedPosition = (index: number) => {
+//  if (index < -1 || index >= store.history.length) return;
+//  store.inspectedMoveIndex = index;
+//  store.historyChess = new Chess();
+//  if (index === -1) return;
+//  for (let i = 0; i <= index; i++) {
+//    const move = store.history[i];
+//    store.historyChess.move(move);
+//  }
+//};
+
+//export function handlePromotion(promotionPiece: string) {
+//  if (!store.pendingPromotion) return;
+//  const { from, to } = store.pendingPromotion;
+//  try {
+//    const moveResult = performMove({
+//      from,
+//      to,
+//      promotion: promotionPiece
+//    });
+//    if (!moveResult) {
+//      store.selectedSquare = undefined;
+//      store.pendingPromotion = null;
+//      return;
+//    }
+//    store.selectedSquare = undefined;
+//    store.pendingPromotion = null;
+//    socket.emit("move", { from, to, promotion: promotionPiece }, (response) => {
+//      if (!response.success) {
+//        setError("Failed to make promotion move");
+//      }
+//    });
+//  } catch (err) {
+//    store.selectedSquare = undefined;
+//    store.pendingPromotion = null;
+//    setError("Invalid promotion move");
+//  }
+//}
+//
+//
+//
+

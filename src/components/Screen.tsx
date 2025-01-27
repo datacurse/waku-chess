@@ -1,5 +1,6 @@
 "use client"
 
+import { store } from "@/store";
 import { socket } from "../socket";
 import { lazy, Suspense, useEffect } from 'react';
 
@@ -12,10 +13,13 @@ export function Screen() {
 
   useEffect(() => {
     if (!roomId || !userId) return;
+    store.roomId = roomId
+    store.userId = userId
 
     socket.emit("join game", roomId, userId);
     const snapshotHandler = (gameSnapshot: any) => {
       console.log(gameSnapshot.roomId, gameSnapshot.chatId);
+      store.gameSnapshot = gameSnapshot
     };
 
     socket.on("gameSnapshot", snapshotHandler);

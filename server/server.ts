@@ -1,13 +1,14 @@
 import { Server as SocketIOServer } from "socket.io";
 import * as SocketIOParser from '@kim5257/socket.io-parser-bigint';
 import { ChatType, Game, GameSnapshot } from "./Game";
+import { Move } from "chess.js";
 
 // Events with explicit parameters
 export interface ClientToServerEvents {
   "join game": (roomId: string, userId: bigint) => void;
   "leave game": (gameId: string, userId: string) => void;
   "start new game": (gameSettings: object) => void;
-  "make move": (move: string, userId: string) => void;
+  "make move": (userId: bigint, move: Move) => void;
   "time is out": (gameId: string) => void;
   "give 15 seconds": (gameId: string, userId: string) => void;
   "propose a takeback": (gameId: string, userId: string) => void;
@@ -89,8 +90,13 @@ io.on("connection", (socket) => {
     console.log("Start new game:", gameSettings);
   });
 
-  socket.on("make move", (move, userId) => {
-    console.log("Make move:", move, userId);
+  socket.on("make move", (userId, move) => {
+    const { roomId, tgUserId } = socket.data;
+    const game = gamesManager.getGame(roomId, userId, "private");
+    if (!game) return
+    game.move(userId, move)
+    console.log("move was made")
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 
   socket.on("time is out", (gameId) => {

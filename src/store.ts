@@ -15,10 +15,10 @@ class ChessStore {
   userId: bigint | null = null;
   gameSnapshot: GameSnapshot | null = null;
 
-  localChess = new Chess();
+  chess = new Chess();
   history: Move[] = [];
   inspectedMoveIndex = -1;
-  selectedSquare: Square | null = null;
+  selectedSquare: Square | undefined = undefined;
   pendingPromotion: PendingPromotion = null;
   modals = {
     startNewGame: false,

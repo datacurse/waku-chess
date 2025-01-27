@@ -1,7 +1,8 @@
 "use client"
 import { store } from '@/store';
+import { selectSquare } from '@/storeFunctions/game';
 import { P5CanvasInstance } from '@p5-wrapper/react';
-import p5 from 'p5';
+import { Square } from 'chess.js';
 import { useEffect, useRef } from 'react';
 
 // Constants
@@ -62,7 +63,7 @@ export default function P5Board() {
 
           const drawPieces = () => {
             const tileSize = canvasSize / 8;
-            store.localChess.board().forEach((row, y) => {
+            store.chess.board().forEach((row, y) => {
               row.forEach((piece, x) => {
                 if (piece) {
                   const fileName = piece.color + piece.type.toUpperCase();
@@ -74,6 +75,19 @@ export default function P5Board() {
                 }
               });
             });
+          };
+
+          p5.mousePressed = () => {
+            const tileSize = canvasSize / 8;
+            const x = Math.floor(p5.mouseX / tileSize);
+            const y = Math.floor(p5.mouseY / tileSize);
+
+            // Convert mouse position to chess square considering rotation
+            let fileIndex = x;
+            let rankIndex = y;
+
+            const clickedSquare = `${'abcdefgh'[fileIndex]}${8 - rankIndex}` as Square;
+            selectSquare(clickedSquare);
           };
 
           p5.draw = () => {
