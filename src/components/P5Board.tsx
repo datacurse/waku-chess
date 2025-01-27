@@ -3,11 +3,27 @@ import { store } from '@/store';
 import { selectSquare } from '@/storeFunctions/game';
 import { P5CanvasInstance } from '@p5-wrapper/react';
 import { Square } from 'chess.js';
+import { Color } from 'p5';
 import { useEffect, useRef } from 'react';
 
 // Constants
-const DARK_TILE = [181, 136, 99];
-const LIGHT_TILE = [240, 217, 181];
+const DARK_TILE = [181, 136, 99]
+const LIGHT_TILE = [240, 217, 181]
+const DARK_GREEN = [100, 111, 64];
+const LIGHT_GREEN = [130, 151, 105];
+const DARK_HIGHLIGHT = [170, 162, 58];  // #AAA23A
+const LIGHT_HIGHLIGHT = [205, 210, 106]; // #CDD26A
+
+type Position = [number, number]
+
+export function squareToPosition(square: Square, color: Color): Position {
+  const x = square.charCodeAt(0) - 97; // 'a' is 97 in ASCII
+  const y = 8 - parseInt(square[1]!);
+  if (color === 'b' && !store.isBoardRotated || color === 'w' && store.isBoardRotated) {
+    return [7 - x, 7 - y];
+  }
+  return [x, y];
+}
 
 export default function P5Board() {
   const renderRef = useRef<HTMLDivElement>(null);
@@ -77,6 +93,19 @@ export default function P5Board() {
             });
           };
 
+          function drawSelectedSquare(selectedSquare: Square) {
+            const tileSize = p5.width / 8;
+            const [x, y] = squareToPosition(selectedSquare, 'w');
+
+            p5.noStroke();
+            if (isLightSquare(x, y)) {
+              p5.fill(LIGHT_GREEN);
+            } else {
+              p5.fill(DARK_GREEN);
+            }
+            p5.rect(x * tileSize, y * tileSize, tileSize, tileSize);
+          }
+
           p5.mousePressed = () => {
             const tileSize = canvasSize / 8;
             const x = Math.floor(p5.mouseX / tileSize);
@@ -93,6 +122,9 @@ export default function P5Board() {
           p5.draw = () => {
             p5.background(250);
             drawBoard();
+            if (store.selectedSquare) {
+              drawSelectedSquare(store.selectedSquare);
+            }
             drawPieces();
           };
         }, renderRef.current);

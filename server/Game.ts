@@ -115,15 +115,13 @@ export class Game {
     if (this.players.w.id === null) {
       this.players.w.id = userId;
       this.players.w.online = true;
-      return true;
     } else if (this.players.b.id === null) {
       this.players.b.id = userId;
       this.players.b.online = true;
-      return true;
     } else {
       this.spectators.push(userId);
-      return true;
     }
+    return true;
   }
 
   disconnectUser(userId: bigint) {
