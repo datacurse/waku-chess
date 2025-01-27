@@ -1,6 +1,6 @@
 import { Server as SocketIOServer } from "socket.io";
-import { ChatType, Room, RoomSnapshot } from '../game/Room';
 import * as SocketIOParser from '@kim5257/socket.io-parser-bigint';
+import { ChatType, Game, GameSnapshot } from "./Game";
 
 // Events with explicit parameters
 export interface ClientToServerEvents {
@@ -20,7 +20,7 @@ export interface ClientToServerEvents {
 }
 
 export interface ServerToClientEvents {
-  roomSnapshot: (roomSnapshot: RoomSnapshot) => void;
+  gameSnapshot: (gameSnapshot: GameSnapshot) => void;
 }
 
 export interface SocketData {
@@ -37,48 +37,48 @@ const io = new SocketIOServer<
   parser: SocketIOParser,
 });
 
-class RoomsManager {
-  rooms: Record<string, Room>
+class GamesManager {
+  games: Record<string, Game>
 
   constructor() {
-    this.rooms = {}
+    this.games = {}
   }
 
-  getRoom(id: string, chatId: bigint, chatType: ChatType): Room {
-    const aliveRoom = this.getAliveRoom(id);
-    if (aliveRoom) return aliveRoom
-    const newAliveRoom = new Room(id, chatId, chatType)
-    this.addAliveRoom(id, newAliveRoom)
-    return newAliveRoom
+  getGame(id: string, chatId: bigint, chatType: ChatType): Game {
+    const aliveGame = this.getAliveGame(id);
+    if (aliveGame) return aliveGame
+    const newAliveGame = new Game(id, chatId, chatType)
+    this.addAliveGame(id, newAliveGame)
+    return newAliveGame
   }
 
-  getAliveRoom(id: string): Room | undefined {
-    return this.rooms[id]
+  getAliveGame(id: string): Game | undefined {
+    return this.games[id]
   }
 
-  addAliveRoom(id: string, room: Room) {
-    this.rooms[id] = room;
+  addAliveGame(id: string, game: Game) {
+    this.games[id] = game;
   }
 
-  killRoom(id: string) {
-    delete this.rooms[id];
+  killGame(id: string) {
+    delete this.games[id];
   }
 }
 
-const roomsManager = new RoomsManager();
+const gamesManager = new GamesManager();
 
 io.on("connection", (socket) => {
   console.log("A user connected");
 
   socket.on("join game", (roomId, userId) => {
-    console.log("start: join game")
+    //console.log("start: join game")
     socket.join(roomId);
-    const room = roomsManager.getRoom(roomId, userId, "private");
-    if (!room) return
-    room.joinUser(userId)
+    const game = gamesManager.getGame(roomId, userId, "private");
+    if (!game) return
+    game.joinUser(userId)
     socket.join(roomId);
-    io.in(roomId).emit("roomSnapshot", room.getSnapshot())
-    console.log("end: join game")
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
+    //console.log("end: join game")
   });
 
   socket.on("leave game", (gameId, userId) => {
