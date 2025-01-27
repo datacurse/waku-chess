@@ -1,9 +1,9 @@
-import 'reflect-metadata';
 import { Server as SocketIOServer } from "socket.io";
 import { ChatType, Room, RoomSnapshot } from '../game/Room';
+import * as SocketIOParser from '@kim5257/socket.io-parser-bigint';
 
 // Events with explicit parameters
-interface ClientToServerEvents {
+export interface ClientToServerEvents {
   "join game": (roomId: string, userId: bigint) => void;
   "leave game": (gameId: string, userId: string) => void;
   "start new game": (gameSettings: object) => void;
@@ -19,7 +19,7 @@ interface ClientToServerEvents {
   "resign": (gameId: string, userId: string) => void;
 }
 
-interface ServerToClientEvents {
+export interface ServerToClientEvents {
   roomSnapshot: (roomSnapshot: RoomSnapshot) => void;
 }
 
@@ -32,8 +32,9 @@ const io = new SocketIOServer<
   ClientToServerEvents, ServerToClientEvents, SocketData
 >({
   cors: {
-    origin: JSON.parse(process.env.CORS_ORIGINS || "[]"),
+    origin: "*",
   },
+  parser: SocketIOParser,
 });
 
 class RoomsManager {
@@ -70,12 +71,14 @@ io.on("connection", (socket) => {
   console.log("A user connected");
 
   socket.on("join game", (roomId, userId) => {
+    console.log("start: join game")
     socket.join(roomId);
     const room = roomsManager.getRoom(roomId, userId, "private");
     if (!room) return
     room.joinUser(userId)
     socket.join(roomId);
     io.in(roomId).emit("roomSnapshot", room.getSnapshot())
+    console.log("end: join game")
   });
 
   socket.on("leave game", (gameId, userId) => {
