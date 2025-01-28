@@ -74,13 +74,11 @@ io.on("connection", (socket) => {
 
   socket.on("join game", (roomId, userId) => {
     socket.data = { roomId, userId };
-    //console.log("start: join game")
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return
     game.joinUser(userId)
     socket.join(roomId);
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-    //console.log("end: join game")
   });
 
   socket.on("leave game", (gameId, userId) => {
@@ -93,13 +91,10 @@ io.on("connection", (socket) => {
 
   socket.on("make move", (userId, move) => {
     const { roomId } = socket.data;
-    console.log("make move")
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return
     game.move(userId, move)
-    console.log("move was made", roomId)
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-    io.in(roomId).emit("ping")
   });
 
   socket.on("time is out", (gameId) => {

@@ -3,33 +3,30 @@ import { Chess, Color, Move } from "chess.js";
 export type ChatType = "sender" | "private" | "channel" | "group" | "supergroup";
 
 interface PlayerSnapshot {
-  readonly id: bigint | null;
-  readonly name: string | null;
-  readonly color: Color;
-  readonly timeLeft: number;
-  readonly online: boolean;
-  readonly offers: Readonly<{
+  id: bigint | null;
+  name: string | null;
+  color: Color;
+  timeLeft: number;
+  online: boolean;
+  offers: {
     draw: boolean;
     takeback: boolean;
-  }>;
+  };
 }
 
 export interface GameSnapshot {
-  readonly roomId: string;
-  readonly chatId: bigint;
-  readonly chatType: ChatType;
-  readonly spectators: readonly bigint[];
-  readonly players: {
-    readonly w: Readonly<PlayerSnapshot> | null;
-    readonly b: Readonly<PlayerSnapshot> | null;
-  };
-  readonly fen: string;
-  readonly isTimed: boolean;
-  readonly gameStartTime: number;
-  readonly lastTurnStartTime: number;
-  readonly isGameOver: boolean;
-  readonly winner: Color | null;
-  readonly moves: readonly Move[];
+  roomId: string;
+  chatId: bigint;
+  chatType: ChatType;
+  spectators: bigint[];
+  players: PlayerSnapshot[];
+  fen: string;
+  isTimed: boolean;
+  gameStartTime: number;
+  lastTurnStartTime: number;
+  isGameOver: boolean;
+  winner: Color | null;
+  moves: Move[];
 }
 
 export class Player {
@@ -43,8 +40,8 @@ export class Player {
     takeback: boolean;
   };
 
-  constructor(color: Color, initialTime: number) {
-    this.id = null;
+  constructor(id: bigint | null, color: Color, initialTime: number) {
+    this.id = id;
     this.name = null;
     this.color = color;
     this.timeLeft = initialTime;
@@ -61,10 +58,7 @@ export class Game {
   chatId: bigint;
   chatType: ChatType;
   spectators: bigint[];
-  players: {
-    w: Player;
-    b: Player;
-  };
+  players: Player[];
   chess: Chess;
   isTimed: boolean;
   gameStartTime: number;
@@ -77,11 +71,7 @@ export class Game {
     this.chatId = chatId;
     this.chatType = chatType;
     this.spectators = [];
-    const initialTime = 10 * 60 * 1000; // 10 minutes in milliseconds
-    this.players = {
-      w: new Player("w", initialTime),
-      b: new Player("b", initialTime),
-    };
+    this.players = [];
     this.chess = new Chess();
     this.isTimed = false;
     this.gameStartTime = 0;
@@ -90,42 +80,36 @@ export class Game {
     this.winner = null;
   }
 
-  private getPlayerByUserId(userId: bigint): Player | null {
-    if (this.players.w.id === userId) return this.players.w;
-    if (this.players.b.id === userId) return this.players.b;
-    return null;
-  }
-
-  private getPlayerColor(userId: bigint): Color | null {
-    if (this.players.w.id === userId) return "w";
-    if (this.players.b.id === userId) return "b";
-    return null;
+  private getPlayer(userId: bigint): Player | null {
+    return this.players.find(player => player.id === userId) || null;
   }
 
   joinUser(userId: bigint): boolean {
-    const player = this.getPlayerByUserId(userId);
+    const existingPlayer = this.getPlayer(userId);
 
-    if (player) {
-      player.online = true;
+    if (existingPlayer) {
+      existingPlayer.online = true;
       return true;
     }
 
     if (this.spectators.includes(userId)) return false;
 
-    if (this.players.w.id === null) {
-      this.players.w.id = userId;
-      this.players.w.online = true;
-    } else if (this.players.b.id === null) {
-      this.players.b.id = userId;
-      this.players.b.online = true;
+    const color = this.players.length === 0 ? "w" : this.players.length === 1 ? "b" : null;
+
+    if (color) {
+      const initialTime = 10 * 60 * 1000; // 10 minutes in milliseconds
+      const newPlayer = new Player(userId, color, initialTime);
+      newPlayer.online = true;
+      this.players.push(newPlayer);
     } else {
       this.spectators.push(userId);
     }
+
     return true;
   }
 
   disconnectUser(userId: bigint) {
-    const player = this.getPlayerByUserId(userId);
+    const player = this.getPlayer(userId);
     if (player) {
       player.online = false;
     } else {
@@ -134,10 +118,10 @@ export class Game {
   }
 
   move(userId: bigint, move: Move): boolean {
-    const color = this.getPlayerColor(userId);
-    if (!color) return false;
+    const player = this.getPlayer(userId);
+    if (!player) return false;
 
-    const validTurn = this.validateTurn(color);
+    const validTurn = this.validateTurn(userId);
     const validPromotion = this.validatePromotion(move);
     const validTime = this.validateTimeControl();
 
@@ -150,29 +134,29 @@ export class Game {
     }
 
     this.checkGameOver();
-    this.updateTime(color);
+    this.updateTime(userId);
     return true;
   }
 
   give15seconds(userId: bigint): boolean {
-    const color = this.getPlayerColor(userId);
-    if (!color || !this.isTimed) return false;
+    const player = this.getPlayer(userId);
+    if (!player || !this.isTimed) return false;
 
-    const enemy = this.getEnemy(color);
-    enemy.timeLeft += 15 * 1000;
+    const enemy = this.getEnemy(userId);
+    if (enemy) enemy.timeLeft += 15 * 1000;
     return true;
   }
 
   resign(userId: bigint) {
-    const color = this.getPlayerColor(userId);
-    if (!color) return;
+    const player = this.getPlayer(userId);
+    if (!player) return;
 
     this.isGameOver = true;
-    this.winner = color === "w" ? "b" : "w";
+    this.winner = player.color === "w" ? "b" : "w";
   }
 
   offerDraw(userId: bigint) {
-    const player = this.getPlayerByUserId(userId);
+    const player = this.getPlayer(userId);
     if (!player) return;
     player.offers.draw = true;
   }
@@ -183,26 +167,28 @@ export class Game {
   }
 
   declineDraw(userId: bigint) {
-    const color = this.getPlayerColor(userId);
-    if (!color) return;
-    this.getEnemy(color).offers.draw = false;
+    const player = this.getPlayer(userId);
+    if (!player) return;
+    const enemy = this.getEnemy(userId);
+    if (enemy) enemy.offers.draw = false;
   }
 
   offerTakeback(userId: bigint) {
-    const player = this.getPlayerByUserId(userId);
+    const player = this.getPlayer(userId);
     if (!player) return;
     player.offers.takeback = true;
   }
 
   declineTakeback(userId: bigint) {
-    const color = this.getPlayerColor(userId);
-    if (!color) return;
-    this.getEnemy(color).offers.takeback = false;
+    const player = this.getPlayer(userId);
+    if (!player) return;
+    const enemy = this.getEnemy(userId);
+    if (enemy) enemy.offers.takeback = false;
   }
 
-  // Helper methods remain mostly unchanged
-  private validateTurn(color: Color): boolean {
-    return color === this.chess.turn();
+  private validateTurn(userId: bigint): boolean {
+    const player = this.getPlayer(userId);
+    return player ? player.color === this.chess.turn() : false;
   }
 
   private validatePromotion(move: Move): boolean {
@@ -213,7 +199,7 @@ export class Game {
     if (!this.isTimed) return true;
 
     let gameOver = false;
-    Object.values(this.players).forEach((player) => {
+    this.players.forEach((player) => {
       if (player.timeLeft <= 0) {
         this.isGameOver = true;
         this.winner = player.color === "w" ? "b" : "w";
@@ -224,12 +210,9 @@ export class Game {
     return !gameOver;
   }
 
-  private getPlayer(color: Color): Player {
-    return this.players[color];
-  }
-
-  private getEnemy(color: Color): Player {
-    return this.players[color === "w" ? "b" : "w"];
+  private getEnemy(userId: bigint): Player | null {
+    const player = this.getPlayer(userId);
+    return player ? this.players.find(p => p.color !== player.color) || null : null;
   }
 
   private checkGameOver() {
@@ -241,8 +224,10 @@ export class Game {
     }
   }
 
-  private updateTime(color: Color) {
-    const player = this.getPlayer(color);
+  private updateTime(userId: bigint) {
+    const player = this.getPlayer(userId);
+    if (!player) return;
+
     const currentTime = Date.now();
 
     if (this.chess.history().length === 0) {
@@ -256,22 +241,19 @@ export class Game {
   }
 
   clearOffers() {
-    Object.values(this.players).forEach((player) => {
+    this.players.forEach((player) => {
       player.offers.draw = false;
       player.offers.takeback = false;
     });
   }
 
-  getSnapshot(): Readonly<GameSnapshot> {
+  getSnapshot(): GameSnapshot {
     const snapshot: GameSnapshot = {
       roomId: this.roomId,
       chatId: this.chatId,
       chatType: this.chatType,
-      spectators: [...this.spectators] as readonly bigint[],
-      players: {
-        w: this.players.w.id !== null ? this.getPlayerSnapshot("w") : null,
-        b: this.players.b.id !== null ? this.getPlayerSnapshot("b") : null,
-      },
+      spectators: [...this.spectators],
+      players: this.players.map(player => this.getPlayerSnapshot(player)),
       fen: this.chess.fen(),
       isTimed: this.isTimed,
       gameStartTime: this.gameStartTime,
@@ -281,18 +263,18 @@ export class Game {
       moves: this.chess.history({ verbose: true }),
     };
 
-    return Object.freeze(snapshot);
+    return snapshot;
   }
 
-  private getPlayerSnapshot(color: Color): Readonly<PlayerSnapshot> {
-    const player = this.players[color];
-    return Object.freeze({
+  private getPlayerSnapshot(player: Player): PlayerSnapshot {
+    return {
       id: player.id,
       name: player.name,
       color: player.color,
       timeLeft: player.timeLeft,
       online: player.online,
-      offers: Object.freeze({ ...player.offers }),
-    });
+      offers: { ...player.offers },
+    };
   }
 }
+
