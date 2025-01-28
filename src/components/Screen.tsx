@@ -3,6 +3,7 @@
 import { store } from "@/store";
 import { socket } from "../socket";
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { GameSnapshot } from "server/Game";
 
 const P5Board = lazy(() => import('./P5Board'));
 
@@ -21,15 +22,15 @@ export function Screen() {
 
     socket.emit("join game", roomId, userId);
 
-    const snapshotHandler = (gameSnapshot: any) => {
-      console.log(gameSnapshot.roomId, gameSnapshot.chatId);
-      store.gameSnapshot = gameSnapshot;
-    };
+    socket.on("ping", () => {
+      console.log("ping")
+    })
 
-    socket.on("gameSnapshot", snapshotHandler);
-    return () => {
-      socket.off("gameSnapshot", snapshotHandler);
-    };
+    socket.on("gameSnapshot", (gameSnapshot: GameSnapshot) => {
+      console.log("recieved gameSnapshot")
+      store.gameSnapshot = gameSnapshot;
+      store.chess.load(gameSnapshot.fen)
+    });
   }, []);
 
   return (

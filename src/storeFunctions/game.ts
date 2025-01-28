@@ -30,13 +30,12 @@ export function selectSquare(square: string) {
       from: fromSquare,
       to: toSquare
     });
-    console.log("move result", move)
     if (!move) {
       store.selectedSquare = undefined;
       return;
     }
     store.selectedSquare = undefined;
-    console.log("sending move", fromSquare, toSquare);
+    console.log("sending move", move);
     socket.emit("make move", userId, move);
   } catch (err) {
     store.selectedSquare = undefined;
@@ -47,7 +46,6 @@ const performMove = (moveDetails: { from: Square, to: Square, promotion?: string
   const move = store.chess.move(moveDetails);
   if (!move) return null;
   store.history = [...store.history, move];
-  store.chess.move(moveDetails);
   store.inspectedMoveIndex = store.history.length - 1;
   //updateGameState();
   return move;

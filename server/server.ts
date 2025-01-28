@@ -22,11 +22,12 @@ export interface ClientToServerEvents {
 
 export interface ServerToClientEvents {
   gameSnapshot: (gameSnapshot: GameSnapshot) => void;
+  ping: () => void;
 }
 
 export interface SocketData {
   roomId: string;
-  tgUserId: bigint;
+  userId: bigint;
 }
 
 const io = new SocketIOServer<
@@ -72,8 +73,8 @@ io.on("connection", (socket) => {
   console.log("A user connected");
 
   socket.on("join game", (roomId, userId) => {
+    socket.data = { roomId, userId };
     //console.log("start: join game")
-    socket.join(roomId);
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return
     game.joinUser(userId)
@@ -91,12 +92,14 @@ io.on("connection", (socket) => {
   });
 
   socket.on("make move", (userId, move) => {
-    const { roomId, tgUserId } = socket.data;
+    const { roomId } = socket.data;
+    console.log("make move")
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return
     game.move(userId, move)
-    console.log("move was made")
+    console.log("move was made", roomId)
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
+    io.in(roomId).emit("ping")
   });
 
   socket.on("time is out", (gameId) => {
