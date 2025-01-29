@@ -4,10 +4,11 @@ import { socket } from "@/socket"
 
 
 export function selectSquare(square: string) {
-  const userId = store.userId
-  if (userId === null) { return }
   if (store.chess.isGameOver()) { return }
   if (store.inspectedMoveIndex !== store.history.length - 1) { return }
+  const userId = store.userId
+  if (userId === null) { return }
+  if (store.me === undefined) { return }
   if (store.pendingPromotion) { return }
   const newSquare = square as Square;
   if (store.selectedSquare === newSquare) {
@@ -16,11 +17,12 @@ export function selectSquare(square: string) {
   }
   if (!store.selectedSquare) {
     const piece = store.chess.get(newSquare);
-    if (piece) {
+    if (piece && piece.color === store.me.color) {
       store.selectedSquare = newSquare;
     }
     return;
   }
+
   const fromSquare = store.selectedSquare;
   if (!fromSquare) return
   console.log("move")
