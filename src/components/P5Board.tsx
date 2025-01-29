@@ -1,7 +1,8 @@
 "use client"
 import { store } from '@/store';
 import { selectSquare } from '@/storeFunctions/game';
-import { P5CanvasInstance } from '@p5-wrapper/react';
+import type p5Module from 'p5';
+import type p5 from 'p5';
 import { Square } from 'chess.js';
 import { useEffect, useRef } from 'react';
 
@@ -37,9 +38,9 @@ export default function P5Board() {
       const initializeP5 = async () => {
         if (typeof window === 'undefined' || !renderRef.current) return;
         try {
-          const p5 = (await import('p5')).default;
+          const p5Module = (await import('p5')).default;
 
-          p5Ref.current = new p5((p5: P5CanvasInstance) => {
+          p5Ref.current = new p5Module((p5: p5Module) => {
             const pieceImages: Record<string, p5.Image> = {};
             let canvasSize = Math.min(window.innerWidth, window.innerHeight);
 
@@ -58,7 +59,7 @@ export default function P5Board() {
 
             p5.setup = () => {
               const canvas = p5.createCanvas(canvasSize, canvasSize);
-              canvas.parent(renderRef.current);
+              canvas.parent(renderRef.current!);
               window.addEventListener('resize', () => {
                 canvasSize = Math.min(window.innerWidth, window.innerHeight);
                 p5.resizeCanvas(canvasSize, canvasSize);
