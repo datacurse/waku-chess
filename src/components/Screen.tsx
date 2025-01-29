@@ -45,7 +45,7 @@ export function Screen() {
       <div className="h-screen flex text-white bg-[#161511]">
         <div className="w-full flex flex-col">
           <div className="flex-1 flex items-end">
-            <PlayerPanel player={me} />
+            <PlayerPanel player={enemy} />
           </div>
           <div className="flex justify-center">
             <Suspense fallback={<div>Loading board...</div>}>
@@ -53,7 +53,7 @@ export function Screen() {
             </Suspense>
           </div>
           <div className="flex-1 flex flex-col items-start">
-            <PlayerPanel player={enemy} />
+            <PlayerPanel player={me} />
           </div>
         </div>
       </div>
