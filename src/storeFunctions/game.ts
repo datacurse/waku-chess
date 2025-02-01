@@ -53,16 +53,18 @@ const performMove = (moveDetails: { from: Square, to: Square, promotion?: string
   return move;
 };
 
-//export const loadSelectedPosition = (index: number) => {
-//  if (index < -1 || index >= store.history.length) return;
-//  store.inspectedMoveIndex = index;
-//  store.historyChess = new Chess();
-//  if (index === -1) return;
-//  for (let i = 0; i <= index; i++) {
-//    const move = store.history[i];
-//    store.historyChess.move(move);
-//  }
-//};
+export const loadSelectedPosition = (index: number) => {
+  if (index < -1 || index >= store.history.length) return;
+  store.inspectedMoveIndex = index;
+  store.chess = new Chess();
+  if (index === -1) return;
+  for (let i = 0; i <= index; i++) {
+    const move = store.history[i];
+    //console.log(store.history, move)
+    if (!move) return
+    store.chess.move(move);
+  }
+};
 
 //export function handlePromotion(promotionPiece: string) {
 //  if (!store.pendingPromotion) return;

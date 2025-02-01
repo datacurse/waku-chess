@@ -39,14 +39,6 @@ class ChessStore {
   }
 }
 
-//export const updateGameState = () => {
-//  store.movingColor = store.chess.turn() as Color;
-//  const isGameOver = store.chess.isGameOver() || store.isGameOver;
-//  if (isGameOver) {
-//    store.modals.startNewGame = true;
-//  }
-//};
-
 export const store = proxy(new ChessStore());
 
 if (process.env.NODE_ENV === 'development') {

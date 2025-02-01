@@ -2,10 +2,12 @@
 
 import { store } from "@/store";
 import { socket } from "../socket";
-import { lazy, Suspense, useEffect, useState } from 'react';
-import { GameSnapshot, Player } from "server/Game";
+import { lazy, Suspense, useEffect } from 'react';
+import { GameSnapshot } from "server/Game";
 import { useSnapshot } from "valtio";
 import { PlayerPanel } from "./PlayerPanel";
+import { ControlPanel } from "./ControlPanel";
+import { loadSelectedPosition } from "@/storeFunctions/game";
 
 const P5Board = lazy(() => import('./P5Board'));
 
@@ -29,12 +31,24 @@ export function Screen() {
     })
 
     socket.on("gameSnapshot", (gameSnapshot: GameSnapshot) => {
-      console.log("recieved gameSnapshot")
+      console.log("received gameSnapshot");
+      const oldInspected = store.inspectedMoveIndex;
+      const oldHistoryLength = store.history.length;
+
       store.gameSnapshot = gameSnapshot;
-      store.me = gameSnapshot.players.find(player => player.id === userId)
-      store.enemy = gameSnapshot.players.find(player => player.id !== userId)
-      store.chess.load(gameSnapshot.fen)
+      store.me = gameSnapshot.players.find(player => player.id === userId);
+      store.enemy = gameSnapshot.players.find(player => player.id !== userId);
+      store.chess.load(gameSnapshot.fen);
+      const newHistory = gameSnapshot.moves.map(move => move);
+      store.history = newHistory;
+      const newHistoryLength = newHistory.length;
+
+      if (oldInspected === -1 || oldInspected === oldHistoryLength - 1) {
+        store.inspectedMoveIndex = newHistoryLength - 1;
+        loadSelectedPosition(store.inspectedMoveIndex);
+      }
     });
+
   }, []);
 
   const { me, enemy } = useSnapshot(store)
@@ -54,6 +68,7 @@ export function Screen() {
           </div>
           <div className="flex-1 flex flex-col items-start">
             <PlayerPanel player={me} />
+            <ControlPanel />
           </div>
         </div>
       </div>
