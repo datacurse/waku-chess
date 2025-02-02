@@ -8,6 +8,7 @@ import { useSnapshot } from "valtio";
 import { PlayerPanel } from "./PlayerPanel";
 import { ControlPanel } from "./ControlPanel";
 import { loadSelectedPosition } from "@/storeFunctions/game";
+import CommandMenuModal from "./modals/CommandMenuModal";
 
 const P5Board = lazy(() => import('./P5Board'));
 
@@ -51,7 +52,7 @@ export function Screen() {
 
   }, []);
 
-  const { me, enemy, isBoardRotated } = useSnapshot(store)
+  const { me, enemy, isBoardRotated, modals } = useSnapshot(store)
 
   return (
     <>
@@ -76,6 +77,7 @@ export function Screen() {
           </div>
         </div>
       </div>
+      {modals.commandMenu && <CommandMenuModal />}
     </>
   );
 }
