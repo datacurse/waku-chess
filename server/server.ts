@@ -104,8 +104,12 @@ io.on("connection", (socket) => {
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 
-  socket.on("time is out", (gameId) => {
-    console.log("Time is out:", gameId);
+  socket.on("time is out", () => {
+    const { roomId, userId } = socket.data;
+    const game = gamesManager.getGame(roomId, userId, "private");
+    if (!game) return
+    game.timeout(userId)
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 
   socket.on("give 15 seconds", () => {

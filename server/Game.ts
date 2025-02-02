@@ -290,6 +290,36 @@ export class Game {
     }
   }
 
+  timeout(userId: bigint): boolean {
+    if (!this.isTimed || this.isGameOver) {
+      return false;
+    }
+
+    const player = this.getPlayer(userId);
+    if (!player) {
+      return false;
+    }
+
+    if (player.color !== this.chess.turn()) {
+      return false;
+    }
+
+    const currentTime = Date.now();
+    const elapsed = currentTime - this.lastTurnStartTime;
+
+    player.timeLeft = Math.max(0, player.timeLeft - elapsed);
+    this.lastTurnStartTime = currentTime;
+
+    if (player.timeLeft <= 0) {
+      this.isGameOver = true;
+      this.winner = player.color === 'w' ? 'b' : 'w';
+      this.updateWinsIfNeeded();
+      return true;
+    }
+
+    return false;
+  }
+
   getSnapshot(): GameSnapshot {
     const snapshot: GameSnapshot = {
       roomId: this.roomId,
