@@ -12,6 +12,7 @@ interface PlayerSnapshot {
     draw: boolean;
     takeback: boolean;
   };
+  wins: number;
 }
 
 export interface GameSnapshot {
@@ -39,6 +40,7 @@ export class Player {
     draw: boolean;
     takeback: boolean;
   };
+  wins: number;
 
   constructor(id: bigint | null, color: Color, initialTime: number) {
     this.id = id;
@@ -50,6 +52,7 @@ export class Player {
       draw: false,
       takeback: false,
     };
+    this.wins = 0;
   }
 }
 
@@ -65,6 +68,7 @@ export class Game {
   lastTurnStartTime: number;
   isGameOver: boolean;
   winner: Color | null;
+  private winsUpdated: boolean;
 
   constructor(roomId: string, chatId: bigint, chatType: ChatType) {
     this.roomId = roomId;
@@ -78,6 +82,7 @@ export class Game {
     this.lastTurnStartTime = 0;
     this.isGameOver = false;
     this.winner = null;
+    this.winsUpdated = false;
   }
 
   private getPlayer(userId: bigint): Player | null {
@@ -153,6 +158,7 @@ export class Game {
 
     this.isGameOver = true;
     this.winner = player.color === "w" ? "b" : "w";
+    this.updateWinsIfNeeded();
   }
 
   offerDraw(userId: bigint) {
@@ -199,12 +205,13 @@ export class Game {
     if (!this.isTimed) return true;
 
     let gameOver = false;
-    this.players.forEach((player) => {
+    this.players.map(player => {
       if (player.timeLeft <= 0) {
         this.isGameOver = true;
         this.winner = player.color === "w" ? "b" : "w";
         gameOver = true;
       }
+      return player;
     });
 
     return !gameOver;
@@ -221,6 +228,7 @@ export class Game {
       if (this.chess.isCheckmate()) {
         this.winner = this.chess.turn() === "w" ? "b" : "w";
       }
+      this.updateWinsIfNeeded();
     }
   }
 
@@ -241,9 +249,10 @@ export class Game {
   }
 
   clearOffers() {
-    this.players.forEach((player) => {
+    this.players.map(player => {
       player.offers.draw = false;
       player.offers.takeback = false;
+      return player;
     });
   }
 
@@ -274,7 +283,17 @@ export class Game {
       timeLeft: player.timeLeft,
       online: player.online,
       offers: { ...player.offers },
+      wins: player.wins
     };
   }
-}
 
+  private updateWinsIfNeeded() {
+    if (!this.winsUpdated && this.winner) {
+      const winningPlayer = this.players.find(player => player.color === this.winner);
+      if (winningPlayer) {
+        winningPlayer.wins += 1;
+      }
+      this.winsUpdated = true;
+    }
+  }
+}

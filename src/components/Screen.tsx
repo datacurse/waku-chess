@@ -9,6 +9,7 @@ import { PlayerPanel } from "./PlayerPanel";
 import { ControlPanel } from "./ControlPanel";
 import { loadSelectedPosition } from "@/storeFunctions/game";
 import CommandMenuModal from "./modals/CommandMenuModal";
+import StartNewGameModal from "./modals/StartNewGameModal";
 
 const P5Board = lazy(() => import('./P5Board'));
 
@@ -78,6 +79,7 @@ export function Screen() {
         </div>
       </div>
       {modals.commandMenu && <CommandMenuModal />}
+      {modals.startNewGame && <StartNewGameModal />}
     </>
   );
 }

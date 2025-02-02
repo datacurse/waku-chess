@@ -7,7 +7,10 @@ import { Move } from "chess.js";
 export interface ClientToServerEvents {
   "join game": (roomId: string, userId: bigint) => void;
   "leave game": (gameId: string, userId: string) => void;
-  "start new game": (gameSettings: object) => void;
+  "start new game": (
+    time: number | undefined,
+    side: "w" | "b" | "random"
+  ) => void;
   "make move": (userId: bigint, move: Move) => void;
   "time is out": (gameId: string) => void;
   "give 15 seconds": () => void;

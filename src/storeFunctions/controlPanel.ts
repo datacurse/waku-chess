@@ -8,7 +8,7 @@ export function rotateBoard() {
 
 export function openCommandMenuOrNewGameModal() {
   const isGameJustStarting = store.history.length < 2;
-  if (isGameJustStarting || store.chess.isGameOver()) {
+  if (isGameJustStarting || store.gameSnapshot?.isGameOver) {
     store.modals.startNewGame = true;
   } else {
     store.modals.commandMenu = true;
