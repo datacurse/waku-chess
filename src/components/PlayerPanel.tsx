@@ -5,11 +5,12 @@ import { useSnapshot } from "valtio";
 import { Player } from "server/Game";
 
 export function PlayerPanel({ player }: { player: Player | undefined }) {
-  const { chess } = useSnapshot(store);
-  const userId = player?.id
+  const { chess, userId } = useSnapshot(store);
+  const id = player?.id
   const name = player?.name
   const isOnline = player?.online
   const turn = player?.color === chess.turn();
+  const opponent = id !== userId
   return (
     <div className="flex flex-row justify-between w-full">
       <div className="flex flex-col ml-2">
@@ -29,17 +30,18 @@ export function PlayerPanel({ player }: { player: Player | undefined }) {
             )}
           </svg>
           <div>
-            {userId ? (name ?? userId.toString()) : "Waiting for opponent..."}
+            {id ? (name ?? id.toString()) : "Waiting for opponent..."}
           </div>
         </div>
         <div className="mt-0.5">
         </div>
       </div>
-      <div className={`py-4 ${true ? 'px-2 bg-timer' : ''} text-text font-semibold text-sm`}>
+      <div className={`px-2 py-4 ${turn ? 'bg-timer text-text font-semibold text-sm' : ''}`}>
         <div className="h-5">
-          {turn ? "Your turn" : "Waiting for opponent"}
+          {turn ? (opponent ? "Waiting for opponent" : "Your turn") : null}
         </div>
       </div>
+
     </div>
   );
 }

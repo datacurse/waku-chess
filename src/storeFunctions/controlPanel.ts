@@ -24,7 +24,6 @@ export function prevHistoryMove() {
 }
 
 export function isAtStart() {
-  console.log(store.inspectedMoveIndex)
   return store.inspectedMoveIndex === -1;
 }
 
