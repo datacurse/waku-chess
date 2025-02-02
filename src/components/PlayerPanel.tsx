@@ -3,14 +3,15 @@
 import { store } from "@/store";
 import { useSnapshot } from "valtio";
 import { Player } from "server/Game";
+import { Timer } from "./Timer";
 
 export function PlayerPanel({ player }: { player: Player | undefined }) {
-  const { userId, history } = useSnapshot(store);
+  const { userId, history, gameSnapshot } = useSnapshot(store);
   const id = player?.id
   const name = player?.name
   const isOnline = player?.online
   const turn = player?.color === (history.length % 2 === 0 ? 'w' : 'b');
-  const opponent = id !== userId
+  const myTurn = id === userId
   return (
     <div className="flex flex-row justify-between w-full">
       <div className="flex flex-col ml-2">
@@ -36,11 +37,18 @@ export function PlayerPanel({ player }: { player: Player | undefined }) {
         <div className="mt-0.5">
         </div>
       </div>
-      <div className={`px-2 py-4 ${turn ? 'bg-timer text-text font-semibold text-sm' : ''}`}>
-        <div className="h-5">
-          {turn ? (opponent ? "Waiting for opponent" : "Your turn") : null}
+      {gameSnapshot?.isTimed ? (
+        <Timer
+          isPlayerTurn={turn}
+          timeLeftMs={player.timeLeft}
+        />
+      ) : !gameSnapshot?.isGameOver && (
+        <div className={`py-4 ${turn ? 'px-2 bg-timer' : ''} text-text font-semibold text-sm`}>
+          <div className="h-5">
+            {turn && (myTurn ? "Your turn" : "Waiting for opponent")}
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );

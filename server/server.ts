@@ -12,7 +12,7 @@ export interface ClientToServerEvents {
     side: "w" | "b" | "random"
   ) => void;
   "make move": (userId: bigint, move: Move) => void;
-  "time is out": (gameId: string) => void;
+  "time is out": () => void;
   "give 15 seconds": () => void;
   "propose a takeback": (gameId: string, userId: string) => void;
   "accept a takeback": (gameId: string, userId: string) => void;
@@ -92,21 +92,7 @@ io.on("connection", (socket) => {
     const { roomId, userId } = socket.data;
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return
-    const requestingPlayer = game.players.find(p => p.id === userId);
-    const otherPlayer = game.players.find(p => p.id !== userId);
-    if (!requestingPlayer || !otherPlayer) { return }
-    game.chess = new Chess();
-    if (side === "random") {
-      [requestingPlayer.color, otherPlayer.color] = [otherPlayer.color, requestingPlayer.color];
-    } else {
-      requestingPlayer.color = side;
-      otherPlayer.color = side === "w" ? "b" : "w";
-    }
-    if (time) {
-      const timeInMs = time * 60 * 1000;
-      requestingPlayer.timeLeft = timeInMs;
-      otherPlayer.timeLeft = timeInMs;
-    }
+    game.startNewGame(userId, side, time)
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 

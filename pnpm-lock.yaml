@@ -62,6 +62,9 @@ importers:
       waku:
         specifier: 0.21.17
         version: 0.21.17(@swc/helpers@0.5.15)(@types/node@22.10.10)(jiti@1.21.7)(react-dom@19.0.0(react@19.0.0))(react-server-dom-webpack@19.0.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)(webpack@5.97.1))(react@19.0.0)(terser@5.37.0)(tsx@4.19.2)(yaml@2.7.0)
+      worker-timers:
+        specifier: ^8.0.13
+        version: 8.0.13
     devDependencies:
       '@types/p5':
         specifier: ^1.7.6
@@ -1294,6 +1297,10 @@ packages:
   fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
 
+  fast-unique-numbers@9.0.15:
+    resolution: {integrity: sha512-vHj0sfq6yB37b/RAAsAJ2DzIp0LR5NlUit7nYFp2YfTUcKL9m/Yk0f0kvYPV4oiuFYXdtO5scs3LQX7qiPAVYQ==}
+    engines: {node: '>=18.2.0'}
+
   fast-uri@3.0.6:
     resolution: {integrity: sha512-Atfo14OibSv5wAp4VWNsFYE1AchQRTv9cBGWET4pZWHzYshFSS9NQI6I57rdKn9croWVMbYFbLhJ+yJvmZIIHw==}
 
@@ -1973,6 +1980,15 @@ packages:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
     hasBin: true
+
+  worker-timers-broker@7.1.9:
+    resolution: {integrity: sha512-YPql2CMZwAqPlCHoxXWsERLJChb8r9YvjRiAR0KSQ8iyNbckmSXdw4UCttrMbntwQLWxz5msO0oiUX2VA3WyTQ==}
+
+  worker-timers-worker@8.0.10:
+    resolution: {integrity: sha512-wmdEMhn70li//pFNDT3pcjQ8kcuZOIuD6vrt9RBCwdTcnwvnsAmdSKSHiZSGwhNYwTJd+dvuhb81G05TGpTHcg==}
+
+  worker-timers@8.0.13:
+    resolution: {integrity: sha512-ggT5TBkuZC+EySptNS61Z5nuwa/8klCyKBv0+Wa0HPLjp13nluIrdUXX9zdYGwJKwNuVPp1wPMUnFuSKw5Hxsg==}
 
   wrap-ansi@7.0.0:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
@@ -3067,6 +3083,11 @@ snapshots:
 
   fast-json-stable-stringify@2.1.0: {}
 
+  fast-unique-numbers@9.0.15:
+    dependencies:
+      '@babel/runtime': 7.26.7
+      tslib: 2.8.1
+
   fast-uri@3.0.6: {}
 
   fastq@1.18.0:
@@ -3754,6 +3775,25 @@ snapshots:
   which@2.0.2:
     dependencies:
       isexe: 2.0.0
+
+  worker-timers-broker@7.1.9:
+    dependencies:
+      '@babel/runtime': 7.26.7
+      fast-unique-numbers: 9.0.15
+      tslib: 2.8.1
+      worker-timers-worker: 8.0.10
+
+  worker-timers-worker@8.0.10:
+    dependencies:
+      '@babel/runtime': 7.26.7
+      tslib: 2.8.1
+
+  worker-timers@8.0.13:
+    dependencies:
+      '@babel/runtime': 7.26.7
+      tslib: 2.8.1
+      worker-timers-broker: 7.1.9
+      worker-timers-worker: 8.0.10
 
   wrap-ansi@7.0.0:
     dependencies:

@@ -256,6 +256,40 @@ export class Game {
     });
   }
 
+  startNewGame(userId: bigint, side: 'w' | 'b' | 'random', time?: number): void {
+    const requestingPlayer = this.players.find(p => p.id === userId);
+    const otherPlayer = this.players.find(p => p.id !== userId);
+    if (!requestingPlayer || !otherPlayer) return;
+
+    // Reset game state
+    this.chess = new Chess();
+    this.isGameOver = false;
+    this.winner = null;
+    const currentTime = Date.now();
+    this.gameStartTime = currentTime;
+    this.lastTurnStartTime = currentTime;
+    this.winsUpdated = false;
+    this.clearOffers();
+
+    // Assign colors
+    if (side === 'random') {
+      [requestingPlayer.color, otherPlayer.color] = [otherPlayer.color, requestingPlayer.color];
+    } else {
+      requestingPlayer.color = side;
+      otherPlayer.color = side === 'w' ? 'b' : 'w';
+    }
+
+    // Set time controls
+    if (time) {
+      const timeInMs = time * 60 * 1000;
+      requestingPlayer.timeLeft = timeInMs;
+      otherPlayer.timeLeft = timeInMs;
+      this.isTimed = true;
+    } else {
+      this.isTimed = false;
+    }
+  }
+
   getSnapshot(): GameSnapshot {
     const snapshot: GameSnapshot = {
       roomId: this.roomId,
