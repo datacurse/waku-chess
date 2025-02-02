@@ -5,11 +5,11 @@ import { useSnapshot } from "valtio";
 import { Player } from "server/Game";
 
 export function PlayerPanel({ player }: { player: Player | undefined }) {
-  const { chess, userId } = useSnapshot(store);
+  const { userId, history } = useSnapshot(store);
   const id = player?.id
   const name = player?.name
   const isOnline = player?.online
-  const turn = player?.color === chess.turn();
+  const turn = player?.color === (history.length % 2 === 0 ? 'w' : 'b');
   const opponent = id !== userId
   return (
     <div className="flex flex-row justify-between w-full">
