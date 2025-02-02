@@ -164,6 +164,11 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("User disconnected");
+    const { roomId, userId } = socket.data;
+    const game = gamesManager.getGame(roomId, userId, "private");
+    if (!game) return
+    game.disconnectUser(userId)
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 });
 
