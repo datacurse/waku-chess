@@ -1,7 +1,7 @@
 import { Server as SocketIOServer } from "socket.io";
 import * as SocketIOParser from '@kim5257/socket.io-parser-bigint';
 import { ChatType, Game, GameSnapshot } from "./Game";
-import { Move } from "chess.js";
+import { Chess, Move } from "chess.js";
 
 // Events with explicit parameters
 export interface ClientToServerEvents {
@@ -88,8 +88,26 @@ io.on("connection", (socket) => {
     console.log("Leave game:", gameId, userId);
   });
 
-  socket.on("start new game", (gameSettings) => {
-    console.log("Start new game:", gameSettings);
+  socket.on("start new game", (time, side) => {
+    const { roomId, userId } = socket.data;
+    const game = gamesManager.getGame(roomId, userId, "private");
+    if (!game) return
+    const requestingPlayer = game.players.find(p => p.id === userId);
+    const otherPlayer = game.players.find(p => p.id !== userId);
+    if (!requestingPlayer || !otherPlayer) { return }
+    game.chess = new Chess();
+    if (side === "random") {
+      [requestingPlayer.color, otherPlayer.color] = [otherPlayer.color, requestingPlayer.color];
+    } else {
+      requestingPlayer.color = side;
+      otherPlayer.color = side === "w" ? "b" : "w";
+    }
+    if (time) {
+      const timeInMs = time * 60 * 1000;
+      requestingPlayer.timeLeft = timeInMs;
+      otherPlayer.timeLeft = timeInMs;
+    }
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 
   socket.on("make move", (userId, move) => {
