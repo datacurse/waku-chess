@@ -31,7 +31,7 @@ export interface GameSnapshot {
 }
 
 export class Player {
-  id: bigint | null;
+  id: bigint;
   name: string | null;
   color: Color;
   timeLeft: number;
@@ -42,7 +42,7 @@ export class Player {
   };
   wins: number;
 
-  constructor(id: bigint | null, color: Color, initialTime: number) {
+  constructor(id: bigint, color: Color, initialTime: number) {
     this.id = id;
     this.name = null;
     this.color = color;
