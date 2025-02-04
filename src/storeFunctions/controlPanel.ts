@@ -6,13 +6,12 @@ export function rotateBoard() {
   console.log(store.isBoardRotated)
 }
 
-export function openCommandMenuOrNewGameModal() {
-  const isGameJustStarting = store.history.length < 2;
-  if (isGameJustStarting || store.gameSnapshot?.isGameOver) {
-    store.modals.startNewGame = true;
-  } else {
-    store.modals.commandMenu = true;
-  }
+export function openCommandMenuModal() {
+  store.modals.commandMenu = true;
+}
+
+export function openStartNewGameModal() {
+  store.modals.startNewGame = true;
 }
 
 export function nextHistoryMove() {

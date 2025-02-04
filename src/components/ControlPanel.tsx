@@ -5,9 +5,10 @@ import { TbArrowBackUp } from "react-icons/tb";
 import { FaArrowsRotate } from "react-icons/fa6";
 import { AiOutlineBackward, AiOutlineForward } from "react-icons/ai";
 import { store } from "@/store";
-import { isAtEnd, isAtStart, nextHistoryMove, openCommandMenuOrNewGameModal, prevHistoryMove, rotateBoard } from "@/storeFunctions/controlPanel";
+import { nextHistoryMove, openCommandMenuModal, openStartNewGameModal, prevHistoryMove, rotateBoard } from "@/storeFunctions/controlPanel";
 import { useSnapshot } from "valtio";
 import { cn } from "@udecode/cn"
+import { IoLogoGameControllerB } from "react-icons/io";
 
 interface ButtonProps {
   icon: IconType;
@@ -44,6 +45,7 @@ export function ControlPanel() {
   const snap = useSnapshot(store);
   const atStart = snap.inspectedMoveIndex === -1;
   const atEnd = snap.inspectedMoveIndex === snap.history.length - 1;
+  const showStartNewGameButton = store.history.length < 2 || store.gameSnapshot?.isGameOver
 
   return (
     <div className="flex justify-between w-full">
@@ -53,10 +55,17 @@ export function ControlPanel() {
         state={snap.isBoardRotated ? 'active' : 'default'}
       />
       <Button icon={TbArrowBackUp} size={30} />
-      <Button
-        icon={TfiMenuAlt}
-        onClick={openCommandMenuOrNewGameModal}
-      />
+      {showStartNewGameButton ? (
+        <Button
+          icon={IoLogoGameControllerB}
+          onClick={openStartNewGameModal}
+        />
+      ) : (
+        <Button
+          icon={TfiMenuAlt}
+          onClick={openCommandMenuModal}
+        />
+      )}
       <Button
         icon={AiOutlineBackward}
         size={30}
