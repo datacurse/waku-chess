@@ -5,15 +5,17 @@ import { store } from "@/store";
 import { useSnapshot } from "valtio";
 import { Player } from "server/Game";
 import { Timer } from "./Timer";
+import { TurnIndicator } from "./TurnIndicator";
 
 export function PlayerPanel({ player }: { player: Player | undefined }) {
   const { userId, chess, gameSnapshot } = useSnapshot(store);
 
   if (!player) return null;
 
-  const isCurrentTurn = player.color === chess.turn();
+  const isMoving = player.color === chess.turn();
   const isGameOver = gameSnapshot?.isGameOver || false;
   const historyLength = gameSnapshot?.moves.length || 0;
+  const isMe = player.id === userId
 
   return (
     <div className="flex flex-row justify-between w-full">
@@ -34,17 +36,13 @@ export function PlayerPanel({ player }: { player: Player | undefined }) {
 
       {gameSnapshot?.isTimed ? (
         <Timer
-          isPlayerTurn={isCurrentTurn}
+          isMoving={isMoving}
           timeLeft={player.timeLeft}
           historyLength={historyLength}
           isGameOver={isGameOver}
         />
       ) : !isGameOver && (
-        <div className={`py-4 ${isCurrentTurn ? 'px-2 bg-timer' : ''} text-text font-semibold text-sm`}>
-          <div className="h-5">
-            {isCurrentTurn && (player.id === userId ? "Your turn" : "Waiting for opponent")}
-          </div>
-        </div>
+        <TurnIndicator isMoving={isMoving} isMe={isMe} />
       )}
     </div>
   );

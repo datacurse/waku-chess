@@ -16,14 +16,12 @@ const formatTimeComponents = (ms: number) => {
   };
 };
 
-type TimerProps = {
-  isPlayerTurn: boolean;
+export function Timer({ isMoving, timeLeft, historyLength, isGameOver }: {
+  isMoving: boolean;
   timeLeft: number;
   historyLength: number;
   isGameOver: boolean;
-};
-
-export function Timer({ isPlayerTurn, timeLeft, historyLength, isGameOver }: TimerProps) {
+}) {
   const [displayTime, setDisplayTime] = useState(timeLeft);
 
   useEffect(() => {
@@ -32,7 +30,7 @@ export function Timer({ isPlayerTurn, timeLeft, historyLength, isGameOver }: Tim
 
   useEffect(() => {
     let intervalId: number | undefined;
-    const shouldRun = historyLength >= 2 && isPlayerTurn && !isGameOver;
+    const shouldRun = historyLength >= 2 && isMoving && !isGameOver;
 
     if (shouldRun) {
       intervalId = setInterval(() => {
@@ -49,10 +47,10 @@ export function Timer({ isPlayerTurn, timeLeft, historyLength, isGameOver }: Tim
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [historyLength, isPlayerTurn, isGameOver]);
+  }, [historyLength, isMoving, isGameOver]);
 
   const { left, right } = formatTimeComponents(displayTime);
-  const shouldGlow = historyLength >= 2 && isPlayerTurn && !isGameOver;
+  const shouldGlow = historyLength >= 2 && isMoving && !isGameOver;
 
   return (
     <div className={cn(
