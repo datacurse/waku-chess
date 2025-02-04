@@ -85,9 +85,7 @@ export class Game {
     this.winsUpdated = false;
   }
 
-  private getPlayer(userId: bigint): Player | null {
-    return this.players.find(player => player.id === userId) || null;
-  }
+
 
   joinUser(userId: bigint): boolean {
     const existingPlayer = this.getPlayer(userId);
@@ -192,61 +190,6 @@ export class Game {
     if (enemy) enemy.offers.takeback = false;
   }
 
-  private validateTurn(userId: bigint): boolean {
-    const player = this.getPlayer(userId);
-    return player ? player.color === this.chess.turn() : false;
-  }
-
-  private validatePromotion(move: Move): boolean {
-    return !move.promotion || ["q", "r", "b", "n"].includes(move.promotion);
-  }
-
-  private validateTimeControl(): boolean {
-    if (!this.isTimed) return true;
-
-    let gameOver = false;
-    this.players.map(player => {
-      if (player.timeLeft <= 0) {
-        this.isGameOver = true;
-        this.winner = player.color === "w" ? "b" : "w";
-        gameOver = true;
-      }
-      return player;
-    });
-
-    return !gameOver;
-  }
-
-  private getEnemy(userId: bigint): Player | null {
-    const player = this.getPlayer(userId);
-    return player ? this.players.find(p => p.color !== player.color) || null : null;
-  }
-
-  private checkGameOver() {
-    if (this.chess.isGameOver()) {
-      this.isGameOver = true;
-      if (this.chess.isCheckmate()) {
-        this.winner = this.chess.turn() === "w" ? "b" : "w";
-      }
-      this.updateWinsIfNeeded();
-    }
-  }
-
-  private updateTime(userId: bigint) {
-    const player = this.getPlayer(userId);
-    if (!player) return;
-
-    const currentTime = Date.now();
-
-    if (this.chess.history().length === 0) {
-      this.gameStartTime = currentTime;
-    } else {
-      const elapsed = currentTime - this.lastTurnStartTime;
-      player.timeLeft = Math.max(0, player.timeLeft - elapsed);
-    }
-
-    this.lastTurnStartTime = currentTime;
-  }
 
   clearOffers() {
     this.players.map(player => {
@@ -339,16 +282,66 @@ export class Game {
     return snapshot;
   }
 
-  private getPlayerSnapshot(player: Player): PlayerSnapshot {
-    return {
-      id: player.id,
-      name: player.name,
-      color: player.color,
-      timeLeft: player.timeLeft,
-      online: player.online,
-      offers: { ...player.offers },
-      wins: player.wins
-    };
+  private getPlayer(userId: bigint): Player | null {
+    return this.players.find(player => player.id === userId) || null;
+  }
+
+  private getEnemy(userId: bigint): Player | null {
+    const player = this.getPlayer(userId);
+    return player ? this.players.find(p => p.color !== player.color) || null : null;
+  }
+
+  private validateTurn(userId: bigint): boolean {
+    const player = this.getPlayer(userId);
+    return player ? player.color === this.chess.turn() : false;
+  }
+
+  private validatePromotion(move: Move): boolean {
+    return !move.promotion || ["q", "r", "b", "n"].includes(move.promotion);
+  }
+
+  private validateTimeControl(): boolean {
+    if (!this.isTimed) return true;
+
+    let gameOver = false;
+    this.players.map(player => {
+      if (player.timeLeft <= 0) {
+        this.isGameOver = true;
+        this.winner = player.color === "w" ? "b" : "w";
+        gameOver = true;
+      }
+      return player;
+    });
+
+    return !gameOver;
+  }
+
+
+
+  private checkGameOver() {
+    if (this.chess.isGameOver()) {
+      this.isGameOver = true;
+      if (this.chess.isCheckmate()) {
+        this.winner = this.chess.turn() === "w" ? "b" : "w";
+      }
+      this.updateWinsIfNeeded();
+    }
+  }
+
+  private updateTime(userId: bigint) {
+    const player = this.getPlayer(userId);
+    if (!player) return;
+
+    const currentTime = Date.now();
+
+    if (this.chess.history().length === 0) {
+      this.gameStartTime = currentTime;
+    } else {
+      const elapsed = currentTime - this.lastTurnStartTime;
+      player.timeLeft = Math.max(0, player.timeLeft - elapsed);
+    }
+
+    this.lastTurnStartTime = currentTime;
   }
 
   private updateWinsIfNeeded() {
@@ -359,5 +352,17 @@ export class Game {
       }
       this.winsUpdated = true;
     }
+  }
+
+  private getPlayerSnapshot(player: Player): PlayerSnapshot {
+    return {
+      id: player.id,
+      name: player.name,
+      color: player.color,
+      timeLeft: player.timeLeft,
+      online: player.online,
+      offers: { ...player.offers },
+      wins: player.wins
+    };
   }
 }

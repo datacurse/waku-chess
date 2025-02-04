@@ -6,7 +6,6 @@ import { Chess, Move } from "chess.js";
 // Events with explicit parameters
 export interface ClientToServerEvents {
   "join game": (roomId: string, userId: bigint) => void;
-  "leave game": (gameId: string, userId: string) => void;
   "start new game": (
     time: number | undefined,
     side: "w" | "b" | "random"
@@ -82,10 +81,6 @@ io.on("connection", (socket) => {
     game.joinUser(userId)
     socket.join(roomId);
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("leave game", (gameId, userId) => {
-    console.log("Leave game:", gameId, userId);
   });
 
   socket.on("start new game", (time, side) => {
