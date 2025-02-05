@@ -122,7 +122,7 @@ io.on("connection", (socket) => {
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return
 
-    game.resign(userId)
+    game.offerTakeback(userId)
 
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
