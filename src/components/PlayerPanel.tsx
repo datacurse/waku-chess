@@ -2,12 +2,12 @@
 
 import { store } from "@/store";
 import { useSnapshot } from "valtio";
-import { Player } from "server/Game";
+import { PlayerSnapshot } from "server/Game";
 import { Timer } from "./Timer";
 import { TurnIndicator } from "./TurnIndicator";
 import { OnlineIndicator } from "./OnlineIndicator";
 
-export function PlayerPanel({ player }: { player: Player | undefined }) {
+export function PlayerPanel({ player }: { player: PlayerSnapshot | undefined }) {
   const { userId, history, gameSnapshot } = useSnapshot(store);
 
   if (!player) return null;
@@ -35,8 +35,8 @@ export function PlayerPanel({ player }: { player: Player | undefined }) {
           historyLength={historyLength}
           isGameOver={isGameOver}
         />
-      ) : !isGameOver && (
-        <TurnIndicator isMoving={isMoving} isMe={isMe} />
+      ) : (
+        <TurnIndicator isMoving={isMoving} isMe={isMe} isGameOver={isGameOver} />
       )}
     </div>
   );

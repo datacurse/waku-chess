@@ -2,8 +2,8 @@ import { Chess, Color, Move } from "chess.js";
 
 export type ChatType = "sender" | "private" | "channel" | "group" | "supergroup";
 
-interface PlayerSnapshot {
-  id: bigint | null;
+export interface PlayerSnapshot {
+  id: bigint;
   name: string | null;
   color: Color;
   timeLeft: number;

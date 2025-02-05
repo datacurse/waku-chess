@@ -2,7 +2,7 @@ import { proxy } from "valtio";
 import { Chess, Color, Move, type Square } from "chess.js";
 import { devtools } from 'valtio/utils'
 import type { } from '@redux-devtools/extension'
-import { GameSnapshot, Player } from "server/Game";
+import { GameSnapshot, Player, PlayerSnapshot } from "server/Game";
 
 export type PendingPromotion = {
   from: Square;
@@ -14,8 +14,8 @@ class ChessStore {
   roomId: string | null = null;
   userId: bigint | null = null;
 
-  me: Player | undefined = undefined;
-  enemy: Player | undefined = undefined;
+  me: PlayerSnapshot | undefined = undefined;
+  enemy: PlayerSnapshot | undefined = undefined;
 
   gameSnapshot: GameSnapshot | null = null;
 
