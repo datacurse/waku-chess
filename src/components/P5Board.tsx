@@ -265,7 +265,11 @@ export default function P5Board() {
             }
 
             p5.mousePressed = () => {
-              if (!store.me || store.modals.startNewGame || store.inspectedMoveIndex !== store.history.length - 1) return;
+              if (!store.me
+                || store.modals.startNewGame
+                || store.inspectedMoveIndex !== store.history.length - 1
+                || store.gameSnapshot?.isGameOver
+              ) return;
               const tileSize = canvasSize / 8;
               const x = Math.floor(p5.mouseX / tileSize);
               const y = Math.floor(p5.mouseY / tileSize);
