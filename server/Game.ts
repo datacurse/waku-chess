@@ -144,18 +144,28 @@ export class Game {
       return false;
     }
 
+    // Increment move count based on the history length
+    const moveCount = this.chess.history({ verbose: true }).length;
+
+    // Start the timer after the second move
+    if (moveCount === 2) {
+      this.gameStartTime = Date.now();
+      this.lastTurnStartTime = this.gameStartTime;
+    }
+
     // Check for game-ending move first
     this.checkGameOver();
     if (this.isGameOver) return true;
 
-    // Process time only in timed games
-    if (this.isTimed) {
+    // Process time only after the second move in timed games
+    if (this.isTimed && moveCount > 2) {
       const timeExpired = this.processPlayerTime(player);
       if (timeExpired) return true;
     }
 
     return true;
   }
+
 
   give15seconds(userId: bigint): boolean {
     if (!this.isTimed) return false;
