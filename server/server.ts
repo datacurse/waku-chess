@@ -13,12 +13,12 @@ export interface ClientToServerEvents {
   "make move": (userId: bigint, move: Move) => void;
   "time is out": () => void;
   "give 15 seconds": () => void;
-  "propose a takeback": (gameId: string, userId: string) => void;
-  "accept a takeback": (gameId: string, userId: string) => void;
-  "decline a takeback": (gameId: string, userId: string) => void;
-  "offer draw": (gameId: string) => void;
-  "accept draw": (gameId: string) => void;
-  "decline draw": (gameId: string) => void;
+  "propose a takeback": () => void;
+  "accept a takeback": () => void;
+  "decline a takeback": () => void;
+  "offer draw": () => void;
+  "accept draw": () => void;
+  "decline draw": () => void;
   "resign": () => void;
 }
 
@@ -115,28 +115,29 @@ io.on("connection", (socket) => {
     io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 
-  socket.on("propose a takeback", (gameId, userId) => {
-    console.log("Propose takeback:", gameId, userId);
+  socket.on("propose a takeback", () => {
+    const { roomId, userId } = socket.data;
+    const game = gamesManager.getGame(roomId, userId, "private");
+    if (!game) return
+
+    game.resign(userId)
+
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
   });
 
-  socket.on("accept a takeback", (gameId, userId) => {
-    console.log("Accept takeback:", gameId, userId);
+  socket.on("accept a takeback", () => {
   });
 
-  socket.on("decline a takeback", (gameId, userId) => {
-    console.log("Decline takeback:", gameId, userId);
+  socket.on("decline a takeback", () => {
   });
 
-  socket.on("offer draw", (gameId) => {
-    console.log("Offer draw:", gameId);
+  socket.on("offer draw", () => {
   });
 
-  socket.on("accept draw", (gameId) => {
-    console.log("Accept draw:", gameId);
+  socket.on("accept draw", () => {
   });
 
-  socket.on("decline draw", (gameId) => {
-    console.log("Decline draw:", gameId);
+  socket.on("decline draw", () => {
   });
 
   socket.on("resign", () => {

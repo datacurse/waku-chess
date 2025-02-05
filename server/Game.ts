@@ -120,15 +120,23 @@ export class Game {
     }
   }
 
+  setName(userId: bigint, name: string): void {
+    const player = this.getPlayer(userId);
+    if (player) {
+      player.name = name;
+    }
+  }
+
   move(userId: bigint, move: Move): boolean {
+    if (this.isGameOver) return false;
+
     const player = this.getPlayer(userId);
     if (!player) return false;
 
     const validTurn = this.validateTurn(userId);
     const validPromotion = this.validatePromotion(move);
-    const validTime = this.validateTimeControl();
 
-    if (!validTurn || !validPromotion || !validTime) return false;
+    if (!validTurn || !validPromotion) return false;
 
     try {
       this.chess.move(move);
@@ -136,21 +144,28 @@ export class Game {
       return false;
     }
 
+    // Check for game-ending move first
     this.checkGameOver();
-    this.updateTime(userId);
+    if (this.isGameOver) return true;
+
+    // Process time only in timed games
+    if (this.isTimed) {
+      const timeExpired = this.processPlayerTime(player);
+      if (timeExpired) return true;
+    }
+
     return true;
   }
 
   give15seconds(userId: bigint): boolean {
-    const player = this.getPlayer(userId);
-    if (!player || !this.isTimed) return false;
-
+    if (!this.isTimed) return false;
     const enemy = this.getEnemy(userId);
     if (enemy) enemy.timeLeft += 15 * 1000;
     return true;
   }
 
   resign(userId: bigint) {
+    if (this.isGameOver) return;
     const player = this.getPlayer(userId);
     if (!player) return;
 
@@ -234,33 +249,12 @@ export class Game {
   }
 
   timeout(userId: bigint): boolean {
-    if (!this.isTimed || this.isGameOver) {
-      return false;
-    }
+    if (!this.isTimed || this.isGameOver) return false;
 
     const player = this.getPlayer(userId);
-    if (!player) {
-      return false;
-    }
+    if (!player || player.color !== this.chess.turn()) return false;
 
-    if (player.color !== this.chess.turn()) {
-      return false;
-    }
-
-    const currentTime = Date.now();
-    const elapsed = currentTime - this.lastTurnStartTime;
-
-    player.timeLeft = Math.max(0, player.timeLeft - elapsed);
-    this.lastTurnStartTime = currentTime;
-
-    if (player.timeLeft <= 0) {
-      this.isGameOver = true;
-      this.winner = player.color === 'w' ? 'b' : 'w';
-      this.updateWinsIfNeeded();
-      return true;
-    }
-
-    return false;
+    return this.processPlayerTime(player);
   }
 
   getSnapshot(): GameSnapshot {
@@ -282,6 +276,23 @@ export class Game {
     return snapshot;
   }
 
+  private processPlayerTime(player: Player): boolean {
+    const currentTime = Date.now();
+    const elapsed = currentTime - this.lastTurnStartTime;
+
+    player.timeLeft = Math.max(0, player.timeLeft - elapsed);
+    this.lastTurnStartTime = currentTime;
+
+    if (player.timeLeft <= 0) {
+      this.isGameOver = true;
+      this.winner = player.color === 'w' ? 'b' : 'w';
+      this.updateWinsIfNeeded();
+      return true;
+    }
+
+    return false;
+  }
+
   private getPlayer(userId: bigint): Player | null {
     return this.players.find(player => player.id === userId) || null;
   }
@@ -300,23 +311,6 @@ export class Game {
     return !move.promotion || ["q", "r", "b", "n"].includes(move.promotion);
   }
 
-  private validateTimeControl(): boolean {
-    if (!this.isTimed) return true;
-
-    let gameOver = false;
-    this.players.map(player => {
-      if (player.timeLeft <= 0) {
-        this.isGameOver = true;
-        this.winner = player.color === "w" ? "b" : "w";
-        gameOver = true;
-      }
-      return player;
-    });
-
-    return !gameOver;
-  }
-
-
 
   private checkGameOver() {
     if (this.chess.isGameOver()) {
@@ -326,22 +320,6 @@ export class Game {
       }
       this.updateWinsIfNeeded();
     }
-  }
-
-  private updateTime(userId: bigint) {
-    const player = this.getPlayer(userId);
-    if (!player) return;
-
-    const currentTime = Date.now();
-
-    if (this.chess.history().length === 0) {
-      this.gameStartTime = currentTime;
-    } else {
-      const elapsed = currentTime - this.lastTurnStartTime;
-      player.timeLeft = Math.max(0, player.timeLeft - elapsed);
-    }
-
-    this.lastTurnStartTime = currentTime;
   }
 
   private updateWinsIfNeeded() {

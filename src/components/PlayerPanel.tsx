@@ -17,6 +17,7 @@ export function PlayerPanel({ player }: { player: Player | undefined }) {
   const isMoving = player.color === chess.turn();
   const historyLength = gameSnapshot?.moves.length || 0;
   const isGameOver = gameSnapshot?.isGameOver || false;
+  console.log(gameSnapshot?.isTimed)
 
   return (
     <div className="flex flex-row justify-between w-full">
