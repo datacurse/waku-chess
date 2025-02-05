@@ -8,16 +8,16 @@ import { TurnIndicator } from "./TurnIndicator";
 import { OnlineIndicator } from "./OnlineIndicator";
 
 export function PlayerPanel({ player }: { player: Player | undefined }) {
-  const { userId, chess, gameSnapshot } = useSnapshot(store);
+  const { userId, history, gameSnapshot } = useSnapshot(store);
 
   if (!player) return null;
 
   const isMe = player.id === userId
   const playerName = (player.name ?? player.id.toString())
-  const isMoving = player.color === chess.turn();
+  const isMoving = player.color === (history.length % 2 === 0 ? 'w' : 'b');
   const historyLength = gameSnapshot?.moves.length || 0;
   const isGameOver = gameSnapshot?.isGameOver || false;
-  console.log(gameSnapshot?.isTimed)
+  console.log()
 
   return (
     <div className="flex flex-row justify-between w-full">
