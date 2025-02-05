@@ -193,6 +193,12 @@ export class Game {
     player.offers.draw = true;
   }
 
+  cancelDrawOffer(userId: bigint) {
+    const player = this.getPlayer(userId);
+    if (!player) return;
+    player.offers.draw = false;
+  }
+
   acceptDraw() {
     this.clearOffers();
     this.isGameOver = true;
@@ -205,10 +211,54 @@ export class Game {
     if (enemy) enemy.offers.draw = false;
   }
 
+
   offerTakeback(userId: bigint) {
     const player = this.getPlayer(userId);
     if (!player) return;
     player.offers.takeback = true;
+  }
+
+  cancelTakebackOffer(userId: bigint) {
+    const player = this.getPlayer(userId);
+    if (!player) return;
+    player.offers.takeback = false;
+  }
+
+
+  acceptTakeback(userId: bigint): boolean {
+    if (this.isGameOver) return false;
+
+    const enemy = this.getEnemy(userId);
+    if (!enemy || !enemy.offers.takeback) return false;
+
+    const userPlayer = this.getPlayer(userId);
+    if (!userPlayer) return false;
+
+    // Determine how many moves to revert: If it's the user's turn, revert 2 moves (full cycle).
+    // Otherwise revert just 1 move.
+    const revertCount = (this.chess.turn() === userPlayer.color) ? 2 : 1;
+
+    let undoSuccess = true;
+    [...Array(revertCount)].map(() => {
+      if (undoSuccess) {
+        const undone = this.chess.undo();
+        if (!undone) undoSuccess = false;
+      }
+      return null;
+    });
+    if (!undoSuccess) return false;
+
+    // Once moves are undone, reset game-over state (in case those moves were decisive)
+    this.isGameOver = false;
+    this.winner = null;
+
+    // Clear all takeback offers
+    this.players.map(p => {
+      p.offers.takeback = false;
+      return p;
+    });
+
+    return true;
   }
 
   declineTakeback(userId: bigint) {
