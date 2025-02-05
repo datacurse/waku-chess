@@ -23,6 +23,7 @@ export interface GameSnapshot {
   players: PlayerSnapshot[];
   fen: string;
   isTimed: boolean;
+  totalTime: number;
   gameStartTime: number;
   lastTurnStartTime: number;
   isGameOver: boolean;
@@ -64,6 +65,7 @@ export class Game {
   players: Player[];
   chess: Chess;
   isTimed: boolean;
+  totalTime: number;
   gameStartTime: number;
   lastTurnStartTime: number;
   isGameOver: boolean;
@@ -78,6 +80,7 @@ export class Game {
     this.players = [];
     this.chess = new Chess();
     this.isTimed = false;
+    this.totalTime = 0;
     this.gameStartTime = 0;
     this.lastTurnStartTime = 0;
     this.isGameOver = false;
@@ -253,8 +256,10 @@ export class Game {
       requestingPlayer.timeLeft = timeInMs;
       otherPlayer.timeLeft = timeInMs;
       this.isTimed = true;
+      this.totalTime = timeInMs
     } else {
       this.isTimed = false;
+      this.totalTime = 0;
     }
   }
 
@@ -276,6 +281,7 @@ export class Game {
       players: this.players.map(player => this.getPlayerSnapshot(player)),
       fen: this.chess.fen(),
       isTimed: this.isTimed,
+      totalTime: this.totalTime,
       gameStartTime: this.gameStartTime,
       lastTurnStartTime: this.lastTurnStartTime,
       isGameOver: this.isGameOver,
