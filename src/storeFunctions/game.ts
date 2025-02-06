@@ -37,7 +37,7 @@ export function selectSquare(square: string) {
       return;
     }
     store.selectedSquare = undefined;
-    socket.emit("make move", userId, move);
+    socket.emit("command", { type: "make_move", payload: { move } });
   } catch (err) {
     store.selectedSquare = undefined;
   }

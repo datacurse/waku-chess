@@ -1,27 +1,29 @@
 import { Server as SocketIOServer } from "socket.io";
 import * as SocketIOParser from '@kim5257/socket.io-parser-bigint';
-import { ChatType, Game, GameSnapshot } from "./Game";
-import { Chess, Move } from "chess.js";
+import { GameSnapshot } from "./Game";
+import { Move } from "chess.js";
+import { GamesManager } from "./GamesManager";
 
-// Events with explicit parameters
+// Define all possible command types and their payloads
+type Command =
+  | { type: "start_new_game"; payload: { time: number | undefined; side: "w" | "b" | "random" } }
+  | { type: "make_move"; payload: { move: Move } }
+  | { type: "time_is_out" }
+  | { type: "give_15_seconds" }
+  | { type: "propose_takeback" }
+  | { type: "cancel_takeback_offer" }
+  | { type: "accept_takeback" }
+  | { type: "decline_takeback" }
+  | { type: "offer_draw" }
+  | { type: "cancel_draw_offer" }
+  | { type: "accept_draw" }
+  | { type: "decline_draw" }
+  | { type: "resign" };
+
+// Update ClientToServerEvents to use single command event
 export interface ClientToServerEvents {
   "join game": (roomId: string, userId: bigint) => void;
-  "start new game": (
-    time: number | undefined,
-    side: "w" | "b" | "random"
-  ) => void;
-  "make move": (userId: bigint, move: Move) => void;
-  "time is out": () => void;
-  "give 15 seconds": () => void;
-  "propose a takeback": () => void;
-  "cancel takeback offer": () => void;
-  "accept a takeback": () => void;
-  "decline a takeback": () => void;
-  "offer draw": () => void;
-  "cancel draw offer": () => void;
-  "accept draw": () => void;
-  "decline draw": () => void;
-  "resign": () => void;
+  "command": (command: Command) => void;
 }
 
 export interface ServerToClientEvents {
@@ -37,185 +39,89 @@ export interface SocketData {
 const io = new SocketIOServer<
   ClientToServerEvents, ServerToClientEvents, SocketData
 >({
-  cors: {
-    origin: "*",
-  },
+  cors: { origin: "*" },
   parser: SocketIOParser,
 });
-
-class GamesManager {
-  games: Record<string, Game>
-
-  constructor() {
-    this.games = {}
-  }
-
-  getGame(id: string, chatId: bigint, chatType: ChatType): Game {
-    const aliveGame = this.getAliveGame(id);
-    if (aliveGame) return aliveGame
-    const newAliveGame = new Game(id, chatId, chatType)
-    this.addAliveGame(id, newAliveGame)
-    return newAliveGame
-  }
-
-  getAliveGame(id: string): Game | undefined {
-    return this.games[id]
-  }
-
-  addAliveGame(id: string, game: Game) {
-    this.games[id] = game;
-  }
-
-  killGame(id: string) {
-    delete this.games[id];
-  }
-}
 
 const gamesManager = new GamesManager();
 
 io.on("connection", (socket) => {
   console.log("A user connected");
 
+  // Join game handler remains the same
   socket.on("join game", (roomId, userId) => {
     socket.data = { roomId, userId };
     const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-    game.joinUser(userId)
+    if (!game) return;
+    game.joinUser(userId);
     socket.join(roomId);
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot());
   });
 
-  socket.on("start new game", (time, side) => {
+  // Single command handler for all game actions
+  socket.on("command", (command) => {
     const { roomId, userId } = socket.data;
     const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-    game.startNewGame(userId, side, time)
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
+    if (!game) return;
 
-  socket.on("make move", (userId, move) => {
-    const { roomId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-    game.move(userId, move)
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
+    switch (command.type) {
+      case "start_new_game":
+        game.startNewGame(userId, command.payload.side, command.payload.time);
+        break;
+      case "make_move":
+        game.move(userId, command.payload.move);
+        break;
+      case "time_is_out":
+        game.timeout(userId);
+        break;
+      case "give_15_seconds":
+        game.resign(userId); // Note: Verify if this is intended behavior
+        break;
+      case "propose_takeback":
+        game.offerTakeback(userId);
+        break;
+      case "cancel_takeback_offer":
+        game.cancelTakebackOffer(userId);
+        break;
+      case "accept_takeback":
+        game.acceptTakeback(userId);
+        break;
+      case "decline_takeback":
+        game.declineTakeback(userId);
+        break;
+      case "offer_draw":
+        game.offerDraw(userId);
+        break;
+      case "cancel_draw_offer":
+        game.cancelDrawOffer(userId);
+        break;
+      case "accept_draw":
+        game.acceptDraw();
+        break;
+      case "decline_draw":
+        game.declineDraw(userId);
+        break;
+      case "resign":
+        game.resign(userId);
+        break;
+      default:
+        console.warn("Unknown command type:", command);
+        return;
+    }
 
-  socket.on("time is out", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-    game.timeout(userId)
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("give 15 seconds", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-    game.resign(userId)
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("propose a takeback", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.offerTakeback(userId)
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("cancel takeback offer", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.cancelTakebackOffer(userId)
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("accept a takeback", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.acceptTakeback(userId)
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("decline a takeback", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.declineTakeback(userId)
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("offer draw", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.offerDraw(userId)
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("cancel draw offer", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.cancelDrawOffer(userId)
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("accept draw", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.acceptDraw()
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("decline draw", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-
-    game.declineDraw(userId)
-
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
-  });
-
-  socket.on("resign", () => {
-    const { roomId, userId } = socket.data;
-    const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-    game.resign(userId)
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot());
   });
 
   socket.on("disconnect", () => {
     console.log("User disconnected");
     const { roomId, userId } = socket.data;
     const game = gamesManager.getGame(roomId, userId, "private");
-    if (!game) return
-    game.disconnectUser(userId)
-    io.in(roomId).emit("gameSnapshot", game.getSnapshot())
+    if (!game) return;
+    game.disconnectUser(userId);
+    io.in(roomId).emit("gameSnapshot", game.getSnapshot());
   });
 });
 
 const port = Number(process.env.SOCKETS_PORT || "3000");
 io.listen(port);
-
-console.log(`Server is running at http://localhost:${port}`);
+console.log(`Server running at http://localhost:${port}`);

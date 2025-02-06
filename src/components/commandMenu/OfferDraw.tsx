@@ -1,4 +1,3 @@
-import { FaCheck } from "react-icons/fa6";
 import { RxCross2 } from "react-icons/rx";
 import { FaRegClock } from "react-icons/fa6";
 import { BsStarHalf } from "react-icons/bs";
@@ -9,11 +8,19 @@ import { socket } from "@/socket";
 export default function OfferDraw() {
   const snap = useSnapshot(store);
 
+  function offerDraw() {
+    socket.emit("command", { type: "offer_draw" })
+  }
+
+  function cancelDrawOffer() {
+    socket.emit("command", { type: "cancel_draw_offer" })
+  }
+
   function Default() {
     return (
       <div
         className="flex items-center space-x-2 cursor-pointer"
-        onClick={() => socket.emit("offer draw")}
+        onClick={offerDraw}
       >
         <BsStarHalf />
         <div>Offer draw</div>
@@ -32,7 +39,7 @@ export default function OfferDraw() {
         </div>
         <div
           className="flex space-x-2 items-center"
-          onClick={() => socket.emit("cancel draw offer")}
+          onClick={cancelDrawOffer}
         >
           <RxCross2 className="text-cross" size={20} />
           <div>Cancel</div>

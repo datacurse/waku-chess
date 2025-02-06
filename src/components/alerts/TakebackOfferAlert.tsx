@@ -5,12 +5,12 @@ import { store } from "@/store";
 
 export function TakebackOfferAlert() {
   function acceptTakeback() {
-    socket.emit("accept a takeback")
+    socket.emit("command", { type: "accept_takeback" })
     store.modals.commandMenu = false
   }
 
   function declineTakeback() {
-    socket.emit("decline a takeback")
+    socket.emit("command", { type: "decline_takeback" })
     store.modals.commandMenu = false
   }
 

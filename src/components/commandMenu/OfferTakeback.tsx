@@ -8,11 +8,19 @@ import { TbArrowBackUp } from "react-icons/tb";
 export default function OfferTakeback() {
   const snap = useSnapshot(store);
 
+  function offerTakeback() {
+    socket.emit("command", { type: "propose_takeback" })
+  }
+
+  function cancelTakebackOffer() {
+    socket.emit("command", { type: "cancel_takeback_offer" })
+  }
+
   function Default() {
     return (
       <div
         className="flex items-center space-x-2 cursor-pointer"
-        onClick={() => socket.emit("propose a takeback")}
+        onClick={offerTakeback}
       >
         <TbArrowBackUp size={16} />
         <div>Offer takeback</div>
@@ -31,7 +39,7 @@ export default function OfferTakeback() {
         </div>
         <div
           className="flex space-x-2 items-center"
-          onClick={() => socket.emit("cancel takeback offer")}
+          onClick={cancelTakebackOffer}
         >
           <RxCross2 className="text-cross" size={20} />
           <div>Cancel</div>

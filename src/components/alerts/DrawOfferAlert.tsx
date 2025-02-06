@@ -5,12 +5,12 @@ import { store } from "@/store";
 
 export function DrawOfferAlert() {
   function acceptDraw() {
-    socket.emit("accept draw")
+    socket.emit("command", { type: "accept_draw" })
     store.modals.commandMenu = false
   }
 
   function declineDraw() {
-    socket.emit("decline draw")
+    socket.emit("command", { type: "decline_draw" })
     store.modals.commandMenu = false
   }
 
