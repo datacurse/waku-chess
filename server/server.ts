@@ -75,7 +75,7 @@ io.on("connection", (socket) => {
         game.timeout(userId);
         break;
       case "give_15_seconds":
-        game.resign(userId); // Note: Verify if this is intended behavior
+        game.give15seconds(userId);
         break;
       case "propose_takeback":
         game.offerTakeback(userId);

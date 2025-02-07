@@ -169,7 +169,6 @@ export class Game {
     return true;
   }
 
-
   give15seconds(userId: bigint): boolean {
     if (!this.isTimed) return false;
     const enemy = this.getEnemy(userId);
