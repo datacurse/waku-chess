@@ -10,6 +10,7 @@ module default {
   }
 
   type Game {
+    required createdAt: int64;
     required spectators: array<bigint>;
     required isTimed: bool;
     required totalTime: int64;
@@ -19,24 +20,24 @@ module default {
     required winner: str {
       constraint one_of('w', 'b', '');
     };
-    required moves: array<json>;
-    multi players: GamePlayer;
+    required moves: array<str>;
+    multi players: Player;
   }
 
   type Player {
-    required playerId: bigint {
-      constraint exclusive;
-    }
-    optional name: str;
-  }
-
-  type GamePlayer {
-    required player: Player;
     required color: str {
       constraint one_of('w', 'b');
     };
     required timeLeft: int64;
     required wins: int64;
+    single user: User;
+  }
+
+  type User {
+    required userId: bigint {
+      constraint exclusive;
+    }
+    optional name: str;
   }
 }
 

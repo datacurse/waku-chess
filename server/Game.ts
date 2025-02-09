@@ -61,6 +61,7 @@ export class Game {
   roomId: string;
   chatId: bigint;
   chatType: ChatType;
+  createdAt: number;
   spectators: bigint[];
   players: Player[];
   chess: Chess;
@@ -76,6 +77,7 @@ export class Game {
     this.roomId = roomId;
     this.chatId = chatId;
     this.chatType = chatType;
+    this.createdAt = Date.now()
     this.spectators = [];
     this.players = [];
     this.chess = new Chess();
@@ -272,12 +274,12 @@ export class Game {
     if (!requestingPlayer || !otherPlayer) return;
 
     // Reset game state
+    this.createdAt = Date.now()
     this.chess = new Chess();
     this.isGameOver = false;
     this.winner = null;
-    const currentTime = Date.now();
-    this.gameStartTime = currentTime;
-    this.lastTurnStartTime = currentTime;
+    this.gameStartTime = 0;
+    this.lastTurnStartTime = 0;
     this.winsUpdated = false;
     this.clearOffers();
 
@@ -348,7 +350,7 @@ export class Game {
     return false;
   }
 
-  private getPlayer(userId: bigint): Player | null {
+  getPlayer(userId: bigint): Player | null {
     return this.players.find(player => player.id === userId) || null;
   }
 

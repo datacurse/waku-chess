@@ -3,8 +3,12 @@ import * as SocketIOParser from '@kim5257/socket.io-parser-bigint';
 import { GameSnapshot } from "./Game";
 import { Move } from "chess.js";
 import { GamesManager } from "./GamesManager";
+import * as edgedb from "edgedb"
+import { initDatabase, updateGame, createNewGame } from "./databaseFunctions";
 
-// Define all possible command types and their payloads
+const client = edgedb.createClient()
+
+// Define al possible command types and their payloads
 type Command =
   | { type: "start_new_game"; payload: { time: number | undefined; side: "w" | "b" | "random" } }
   | { type: "make_move"; payload: { move: Move } }
@@ -49,17 +53,20 @@ io.on("connection", (socket) => {
   console.log("A user connected");
 
   // Join game handler remains the same
-  socket.on("join game", (roomId, userId) => {
+  socket.on("join game", async (roomId, userId) => {
     socket.data = { roomId, userId };
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return;
+
     game.joinUser(userId);
+    initDatabase(client, roomId, userId, game)
+
     socket.join(roomId);
     io.in(roomId).emit("gameSnapshot", game.getSnapshot());
   });
 
   // Single command handler for all game actions
-  socket.on("command", (command) => {
+  socket.on("command", async (command) => {
     const { roomId, userId } = socket.data;
     const game = gamesManager.getGame(roomId, userId, "private");
     if (!game) return;
@@ -108,6 +115,10 @@ io.on("connection", (socket) => {
         console.warn("Unknown command type:", command);
         return;
     }
+
+    // update game
+    // update game players
+    updateGame(client, game)
 
     io.in(roomId).emit("gameSnapshot", game.getSnapshot());
   });
