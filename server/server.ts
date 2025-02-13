@@ -118,7 +118,11 @@ io.on("connection", (socket) => {
 
     // update game
     // update game players
-    updateGame(client, game)
+    if (command.type === "start_new_game") {
+      createNewGame(client, roomId, game)
+    } else {
+      updateGame(client, game)
+    }
 
     io.in(roomId).emit("gameSnapshot", game.getSnapshot());
   });

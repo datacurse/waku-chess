@@ -27,7 +27,7 @@ export async function initDatabase(
   // game
   let gameDb = (await e.select(e.Game, (game) => ({
     ...e.Game['*'],
-    order_by: game.createdAt,
+    order_by: { expression: game.createdAt, direction: e.DESC },
     limit: 1
   })).run(client))[0];
   if (!gameDb) {
@@ -45,7 +45,7 @@ export async function initDatabase(
   }
   gameDb = (await e.select(e.Game, (game) => ({
     ...e.Game['*'],
-    order_by: game.createdAt,
+    order_by: { expression: game.createdAt, direction: e.DESC },
     limit: 1
   })).run(client))[0];
   if (!gameDb) return;
@@ -125,7 +125,7 @@ export async function updateGame(
   // Fetch the latest game entry for the room
   let gameDb = (await e.select(e.Game, (game) => ({
     ...e.Game['*'],
-    order_by: game.createdAt,
+    order_by: { expression: game.createdAt, direction: e.DESC },
     limit: 1
   })).run(client))[0];
 
